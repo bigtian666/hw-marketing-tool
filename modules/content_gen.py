@@ -14,7 +14,7 @@ from modules.knowledge_base import get_relevant_materials, get_materials
 
 def generate_copy(product, direction, partner_idea, materials_context=""):
     """基于伙伴创意 + 知识库物料生成朋友圈文案"""
-    brand_name = "华为"
+    brand_name = "华为坤灵"
     product_name = product.get("name", "")
 
     direction_names = {
@@ -48,7 +48,7 @@ def generate_copy(product, direction, partner_idea, materials_context=""):
 
 def generate_video_script(product, direction, partner_idea, materials_context=""):
     """生成短视频脚本（分镜）"""
-    brand_name = "华为"
+    brand_name = "华为坤灵"
     product_name = product.get("name", "")
 
     system = f"""你是一个{brand_name}官方短视频导演，负责为合作伙伴创作朋友圈短视频脚本。

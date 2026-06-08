@@ -1,50 +1,75 @@
 {
-  "93e85d268586": {
-    "id": "93e85d268586",
-    "url": "https://partner.huawei.com/eplus/marketing/#/cn/web/materialPreview?itemId=demo1&platType=partnerMD",
-    "product_id": "pura70",
-    "title": "Pura70发布会回放",
+  "11cc569b4f53": {
+    "id": "11cc569b4f53",
+    "url": "https://partner.huawei.com/eplus/marketing/#/cn/web/materialPreview?itemId=09f8078ed45543febfec6bf91bc41834&platType=partnerMD",
+    "product_id": "df10",
+    "title": "华为灵眸 eKitEngine DF10彩页",
     "tags": [
-      "活动",
-      "发布会"
+      "DF10",
+      "ekitEngine",
+      "产品彩页",
+      "自动抓取",
+      "partner.huawei.com"
     ],
-    "notes": "2026春季发布会",
+    "notes": "来自华为合作伙伴门户的DF10产品彩页物料",
     "status": "待抓取",
     "files": [],
-    "created_at": "2026-06-08 02:48",
-    "updated_at": "2026-06-08 02:48"
+    "created_at": "2026-06-08 12:00",
+    "updated_at": "2026-06-08 12:00"
   },
-  "93564647330f": {
-    "id": "93564647330f",
-    "url": "https://partner.huawei.com/eplus/marketing/#/cn/web/materialPreview?itemId=demo2&platType=partnerMD",
-    "product_id": "pura70",
-    "title": "Pura70用户口碑合集",
+  "7a865a1e24c6": {
+    "id": "7a865a1e24c6",
+    "url": "https://partner.huawei.com/eplus/marketing/#/cn/web/materialPreview?itemId=9492963567b1492487aeb047be7d7cff&platType=partnerMD",
+    "product_id": "df10",
+    "title": "00 HUAWEI eKitEngine DF10 Presentation Slides",
     "tags": [
-      "案例",
-      "口碑",
-      "用户"
+      "DF10",
+      "ekitEngine",
+      "演示文稿",
+      "自动抓取",
+      "partner.huawei.com"
     ],
-    "notes": "来自电商平台真实评价",
+    "notes": "来自华为合作伙伴门户的DF10演示文稿物料",
     "status": "待抓取",
     "files": [],
-    "created_at": "2026-06-08 02:48",
-    "updated_at": "2026-06-08 02:48"
+    "created_at": "2026-06-08 12:00",
+    "updated_at": "2026-06-08 12:00"
   },
-  "afe806042809": {
-    "id": "afe806042809",
-    "url": "https://partner.huawei.com/eplus/marketing/#/cn/web/materialPreview?itemId=demo3&platType=partnerMD",
-    "product_id": "pura70",
-    "title": "Pura70全家福产品图",
+  "e3de77215673": {
+    "id": "e3de77215673",
+    "url": "https://partner.huawei.com/eplus/marketing/#/cn/web/materialPreview?itemId=f8e46b65e5d1472a87a91397d6ddb233&platType=partnerMD",
+    "product_id": "df10",
+    "title": "灵眸DF10对比评测视频",
     "tags": [
-      "产品",
-      "图片",
-      "视觉"
+      "DF10",
+      "ekitEngine",
+      "评测视频",
+      "自动抓取",
+      "partner.huawei.com"
     ],
-    "notes": "多角度高清产品图",
+    "notes": "来自华为合作伙伴门户的DF10评测视频物料",
     "status": "待抓取",
     "files": [],
-    "created_at": "2026-06-08 02:48",
-    "updated_at": "2026-06-08 02:48"
+    "created_at": "2026-06-08 12:00",
+    "updated_at": "2026-06-08 12:00"
+  },
+  "3ffd5e647683": {
+    "id": "3ffd5e647683",
+    "url": "https://partner.huawei.com/eplus/marketing/#/cn/web/materialPreview?itemId=077111e12a6644968ca22bd9e951d6f1&platType=partnerMD",
+    "product_id": "df10",
+    "title": "DF10易拉宝源文件(26H1)",
+    "tags": [
+      "DF10",
+      "ekitEngine",
+      "易拉宝",
+      "自动抓取",
+      "partner.huawei.com"
+    ],
+    "notes": "来自华为合作伙伴门户的DF10易拉宝物料",
+    "status": "待抓取",
+    "files": [],
+    "created_at": "2026-06-08 12:00",
+    "updated_at": "2026-06-08 12:00"
   },
   "bdcfdc8a7e52": {
     "id": "bdcfdc8a7e52",
@@ -53,45 +78,105 @@
     "title": "灵眸DF10版本升级指导视频",
     "tags": [
       "DF10",
-      "版本升级",
-      "指导视频"
+      "ekitEngine",
+      "指导视频",
+      "自动抓取",
+      "partner.huawei.com"
     ],
-    "notes": "含高清/标清视频(.mp4)和封面截图(.png)，附件可下载",
+    "notes": "来自华为合作伙伴门户的DF10指导视频物料",
     "status": "待抓取",
     "files": [],
-    "created_at": "2026-06-08 03:04",
-    "updated_at": "2026-06-08 03:04"
+    "created_at": "2026-06-08 12:00",
+    "updated_at": "2026-06-08 12:00"
   },
-  "e38c91d555bb": {
-    "id": "e38c91d555bb",
-    "url": "https://e.huawei.com/marketingcloud/pep/asset/20000001/Material/4027a7f4e9484a92ad247ee9021f3789/M3T1A590N1246113915420152093/%E5%8D%8E%E4%B8%BA%E7%81%B5%E7%9C%B8AirEngine%20DF10%E6%96%B0%E4%B8%80%E4%BB%A3%E9%9A%90%E8%97%8F%E5%BD%B1%E5%83%8F%E8%AE%BE%E5%A4%87%E6%A3%80%E6%B5%8B%E4%BA%A7%E5%93%81%E5%BD%A9%E9%A1%B5.pdf",
+  "10cf2c2dc62f": {
+    "id": "10cf2c2dc62f",
+    "url": "https://partner.huawei.com/eplus/marketing/#/cn/web/materialPreview?itemId=229000f8fe374ad185e6e2897bb308fc&platType=partnerMD",
     "product_id": "df10",
-    "title": "华为灵眸AirEngine DF10产品彩页",
+    "title": "华为灵眸 eKitEngine DF10产品视频",
     "tags": [
       "DF10",
+      "ekitEngine",
+      "产品视频",
+      "自动抓取",
+      "partner.huawei.com"
+    ],
+    "notes": "来自华为合作伙伴门户的DF10产品视频物料",
+    "status": "待抓取",
+    "files": [],
+    "created_at": "2026-06-08 12:00",
+    "updated_at": "2026-06-08 12:00"
+  },
+  "8a3577f62068": {
+    "id": "8a3577f62068",
+    "url": "https://partner.huawei.com/eplus/marketing/#/cn/web/materialPreview?itemId=964d7f44086a401b91d95facc01814fa&platType=partnerMD",
+    "product_id": "df10",
+    "title": "HUAWEI eKitEngine DF10 Portable Camera Detector video",
+    "tags": [
+      "DF10",
+      "ekitEngine",
+      "产品视频",
+      "自动抓取",
+      "partner.huawei.com"
+    ],
+    "notes": "来自华为合作伙伴门户的DF10产品视频物料",
+    "status": "待抓取",
+    "files": [],
+    "created_at": "2026-06-08 12:00",
+    "updated_at": "2026-06-08 12:00"
+  },
+  "4545e8bb0bf5": {
+    "id": "4545e8bb0bf5",
+    "url": "https://partner.huawei.com/eplus/marketing/#/cn/web/materialPreview?itemId=6463b9e52b04490dad8154a1a9885f50&platType=partnerMD",
+    "product_id": "df10",
+    "title": "iGuard Hidden-Camera Detection AirEngine DF10 Poster",
+    "tags": [
+      "DF10",
+      "ekitEngine",
+      "海报",
+      "自动抓取",
+      "partner.huawei.com"
+    ],
+    "notes": "来自华为合作伙伴门户的DF10海报物料",
+    "status": "待抓取",
+    "files": [],
+    "created_at": "2026-06-08 12:00",
+    "updated_at": "2026-06-08 12:00"
+  },
+  "6b06261e7632": {
+    "id": "6b06261e7632",
+    "url": "https://partner.huawei.com/eplus/marketing/#/cn/web/materialPreview?itemId=6801a2a2a62a41c18f8beb35ff0ae3d3&platType=partnerMD",
+    "product_id": "df10",
+    "title": "灵眸防偷拍AirEngine DF10海报",
+    "tags": [
+      "DF10",
+      "ekitEngine",
+      "海报",
+      "自动抓取",
+      "partner.huawei.com"
+    ],
+    "notes": "来自华为合作伙伴门户的DF10海报物料",
+    "status": "待抓取",
+    "files": [],
+    "created_at": "2026-06-08 12:00",
+    "updated_at": "2026-06-08 12:00"
+  },
+  "cf257770a329": {
+    "id": "cf257770a329",
+    "url": "https://partner.huawei.com/eplus/marketing/#/cn/web/materialPreview?itemId=4027a7f4e9484a92ad247ee9021f3789&platType=partnerMD",
+    "product_id": "df10",
+    "title": "华为灵眸AirEngine DF10彩页",
+    "tags": [
+      "DF10",
+      "ekitEngine",
       "产品彩页",
-      "产品规格"
+      "自动抓取",
+      "partner.huawei.com"
     ],
-    "notes": "PDF文档，1.3MB，含产品功能、规格、应用场景介绍",
+    "notes": "来自华为合作伙伴门户的DF10产品彩页物料",
     "status": "待抓取",
     "files": [],
-    "created_at": "2026-06-08 03:04",
-    "updated_at": "2026-06-08 03:04"
-  },
-  "fde32e497f50": {
-    "id": "fde32e497f50",
-    "url": "https://support.huawei.com/enterprise/zh/multimedia/enterpriseCloudCore?pbiId=PBI2-262426686",
-    "product_id": "df10",
-    "title": "华为灵眸DF10防偷拍使用指南",
-    "tags": [
-      "DF10",
-      "使用指南",
-      "视频教程"
-    ],
-    "notes": "support.huawei.com 上的多媒体页面",
-    "status": "待抓取",
-    "files": [],
-    "created_at": "2026-06-08 03:04",
-    "updated_at": "2026-06-08 03:04"
+    "created_at": "2026-06-08 12:00",
+    "updated_at": "2026-06-08 12:00"
   }
 }

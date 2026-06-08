@@ -103,8 +103,8 @@ def render_partner_page(product, config):
     partner_idea = st.text_area(
         "你的创意想法",
         placeholder=(
-            "例：我想突出Pura70在暗光下的表现，用'夜探老北京胡同'这个场景，\n"
-            "展现夜景拍摄能力，配上'发现黑夜中的美'这个主题……"
+            "例：我想突出ekitEngine DF10防偷拍检测功能，用'出差住酒店安全检测'这个场景，\n"
+            "展现一键检测隐藏摄像头的便捷，配上'安心出行，隐私无忧'这个主题……"
         ),
         height=150, key="idea_input",
         value=st.session_state.partner_idea
