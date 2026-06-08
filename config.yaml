@@ -1,0 +1,77 @@
+# 华为伙伴营销内容协作平台 - 配置
+# 管理员可在后台修改此配置
+
+brand:
+  name: "华为"
+  slogan: "遥遥领先"
+  tone: ["专业", "亲切", "高端", "科技感"]
+
+products:
+  - id: "pura70"
+    name: "HUAWEI Pura 70 系列"
+    keywords: ["影像", "超聚光", "旗舰", "手机"]
+    directions:
+      - id: "product_showcase"
+        name: "产品种草"
+        prompt_hint: "突出产品核心卖点和使用场景"
+        output_types: ["文案+配图", "短视频", "脚本"]
+      - id: "activity"
+        name: "活动推广"
+        prompt_hint: "结合促销/节日/活动节点"
+        output_types: ["文案+配图", "短视频", "脚本"]
+      - id: "scene_story"
+        name: "场景故事"
+        prompt_hint: "结合真实使用场景讲故事"
+        output_types: ["文案+配图", "短视频", "脚本"]
+      - id: "user_case"
+        name: "客户案例"
+        prompt_hint: "以客户视角讲述使用体验"
+        output_types: ["文案+配图", "短视频", "脚本"]
+  - id: "df10"
+    name: "灵眸 DF10"
+    keywords: ["灵眸", "DF10", "智能摄像头", "安防", "监控"]
+    directions:
+      - id: "product_showcase"
+        name: "产品种草"
+        prompt_hint: "突出产品核心卖点和使用场景"
+        output_types: ["文案+配图", "短视频", "脚本"]
+      - id: "activity"
+        name: "活动推广"
+        prompt_hint: "结合促销/节日/活动节点"
+        output_types: ["文案+配图", "短视频", "脚本"]
+      - id: "scene_story"
+        name: "场景故事"
+        prompt_hint: "结合真实使用场景讲故事"
+        output_types: ["文案+配图", "短视频", "脚本"]
+      - id: "user_case"
+        name: "客户案例"
+        prompt_hint: "以客户视角讲述使用体验"
+        output_types: ["文案+配图", "短视频", "脚本"]
+  - id: "matepad"
+    name: "HUAWEI MatePad 系列"
+    keywords: ["平板", "办公", "学习", "创作"]
+    directions:
+      - id: "product_showcase"
+        name: "产品种草"
+        output_types: ["文案+配图", "短视频", "脚本"]
+      - id: "activity"
+        name: "活动推广"
+        output_types: ["文案+配图", "短视频", "脚本"]
+      - id: "scene_story"
+        name: "场景故事"
+        output_types: ["文案+配图", "短视频", "脚本"]
+
+rules:
+  forbidden_words:
+    - "最"  # 极限词谨慎使用
+    - "第一"
+    - "绝对"
+  required_words:
+    - "华为"
+  brand_phrases:
+    - "华为 %s 系列"
+    - "华为旗舰"
+
+review:
+  # 审核通过后的内容是否自动标记为"可供所有伙伴使用"
+  auto_share_materials: true

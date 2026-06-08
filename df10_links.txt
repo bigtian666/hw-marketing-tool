@@ -1,0 +1,46 @@
+# 华为灵眸DF10 相关物料详情页URL列表
+# 搜索日期: 2026-06-08
+# 搜索来源: xiaoyi-web-search 多关键词搜索
+# 搜索关键词:
+#   - site:partner.huawei.com DF10
+#   - "partner.huawei.com" "灵眸" DF10
+#   - "materialPreview" DF10
+#   - 华为 灵眸 DF10 营销物料
+#   - "灵眸DF10" OR "灵眸卫士DF10" 彩页 OR 物料
+#   - DF10 site:e.huawei.com marketing OR material
+#   - AirEngine DF10 物料 OR 彩页 OR 产品介绍
+#   - DF10 site:e.huawei.com product OR 产品
+
+================================================================================
+
+# ====== 产品彩页 / Datasheet (PDF) ======
+
+# 华为灵眸 AirEngine DF10 新一代隐藏影像设备检测产品彩页 (中文文件名, e.huawei.com marketing cloud)
+https://e.huawei.com/marketingcloud/pep/asset/20000001/Material/4027a7f4e9484a92ad247ee9021f3789/M3T1A590N1246113915420152093/华为灵眸AirEngine%20DF10新一代隐藏影像设备检测产品彩页.pdf
+
+# 华为灵眸 AirEngine DF10 产品彩页 (同一PDF，URL编码文件名版本)
+https://e.huawei.com/marketingcloud/pep/asset/20000001/Material/4027a7f4e9484a92ad247ee9021f3789/M3T1A590N1246113915420152093/%E5%8D%8E%E4%B8%BA%E7%81%B5%E7%9C%B8AirEngine%20DF10%E6%96%B0%E4%B8%80%E4%BB%A3%E9%9A%90%E8%97%8F%E5%BD%B1%E5%83%8F%E8%AE%BE%E5%A4%87%E6%A3%80%E6%B5%8B%E4%BA%A7%E5%93%81%E5%BD%A9%E9%A1%B5.pdf
+
+# ====== 使用指南 / 多媒体教程 ======
+
+# 华为企业技术支持 - 华为灵眸DF10防偷拍使用指南 (多媒体视频列表页)
+https://support.huawei.com/enterprise/zh/multimedia/enterpriseCloudCore?pbiId=PBI2-262426686
+
+# Info-Finder 华为灵眸DF10防偷拍使用指南 (在线课程/资料列表页)
+https://info.support.huawei.com/info-finder/vue/zh/enterprise/onlinecourses/list/wlan?year=2026
+
+# ====== 产品介绍页面 ======
+
+# 华为企业业务 - AirEngine 6776-X7TH 接入点（灵眸防偷拍AP系列）
+https://e.huawei.com/cn/products/wlan/indoor-access-points/airengine-6776-x7th
+
+# ====== 华为企业业务官网-产品资料中心 (通用入口) ======
+https://e.huawei.com/cn/material/Product-Material
+
+================================================================================
+
+说明:
+- partner.huawei.com 搜索结果不包含DF10专用物料详情页的直接公开URL。
+- 华为灵眸DF10的物料主要托管在 e.huawei.com (marketingcloud) 和 support.huawei.com 上。
+- 同一PDF文件的不同URL编码版本均收录，实际为同一文件。
+- 以上URL均为公开物料链接，可能需登录华为合作伙伴账号才能直接访问/下载。

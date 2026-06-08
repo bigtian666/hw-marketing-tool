@@ -1,0 +1,77 @@
+{
+  "5d6f5f02b6dc": {
+    "id": "5d6f5f02b6dc",
+    "name": "Pura70产品彩页_v3",
+    "product_id": "pura70",
+    "type": "文档",
+    "ext": ".pdf",
+    "path": "/home/sandbox/.openclaw/workspace/hw-marketing-tool/data/materials/pura70/5d6f5f02b6dc.pdf",
+    "tags": [
+      "产品",
+      "彩页",
+      "卖点"
+    ],
+    "size": 89,
+    "source_link": ""
+  },
+  "566e40be98b6": {
+    "id": "566e40be98b6",
+    "name": "Pura70夜景样张合集",
+    "product_id": "pura70",
+    "type": "PPT",
+    "ext": ".pptx",
+    "path": "/home/sandbox/.openclaw/workspace/hw-marketing-tool/data/materials/pura70/566e40be98b6.pptx",
+    "tags": [
+      "影像",
+      "夜景",
+      "样张"
+    ],
+    "size": 78,
+    "source_link": ""
+  },
+  "7d55d2d11759": {
+    "id": "7d55d2d11759",
+    "name": "Pura70卖点速查表",
+    "product_id": "pura70",
+    "type": "文档",
+    "ext": ".docx",
+    "path": "/home/sandbox/.openclaw/workspace/hw-marketing-tool/data/materials/pura70/7d55d2d11759.docx",
+    "tags": [
+      "产品",
+      "卖点",
+      "速查"
+    ],
+    "size": 84,
+    "source_link": ""
+  },
+  "bd70b5bab8bf": {
+    "id": "bd70b5bab8bf",
+    "name": "618大促主视觉",
+    "product_id": "pura70",
+    "type": "图片",
+    "ext": ".jpg",
+    "path": "/home/sandbox/.openclaw/workspace/hw-marketing-tool/data/materials/pura70/bd70b5bab8bf.jpg",
+    "tags": [
+      "活动",
+      "618",
+      "促销"
+    ],
+    "size": 69,
+    "source_link": ""
+  },
+  "f0d10dcc22d7": {
+    "id": "f0d10dcc22d7",
+    "name": "华为灵眸DF10产品彩页",
+    "product_id": "df10",
+    "type": "文档",
+    "ext": ".pdf",
+    "path": "/home/sandbox/.openclaw/workspace/hw-marketing-tool/data/materials/df10/f0d10dcc22d7.pdf",
+    "tags": [
+      "DF10",
+      "产品彩页",
+      "产品规格"
+    ],
+    "size": 1318869,
+    "source_link": ""
+  }
+}

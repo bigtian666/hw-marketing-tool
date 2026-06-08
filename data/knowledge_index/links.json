@@ -1,0 +1,97 @@
+{
+  "93e85d268586": {
+    "id": "93e85d268586",
+    "url": "https://partner.huawei.com/eplus/marketing/#/cn/web/materialPreview?itemId=demo1&platType=partnerMD",
+    "product_id": "pura70",
+    "title": "Pura70发布会回放",
+    "tags": [
+      "活动",
+      "发布会"
+    ],
+    "notes": "2026春季发布会",
+    "status": "待抓取",
+    "files": [],
+    "created_at": "2026-06-08 02:48",
+    "updated_at": "2026-06-08 02:48"
+  },
+  "93564647330f": {
+    "id": "93564647330f",
+    "url": "https://partner.huawei.com/eplus/marketing/#/cn/web/materialPreview?itemId=demo2&platType=partnerMD",
+    "product_id": "pura70",
+    "title": "Pura70用户口碑合集",
+    "tags": [
+      "案例",
+      "口碑",
+      "用户"
+    ],
+    "notes": "来自电商平台真实评价",
+    "status": "待抓取",
+    "files": [],
+    "created_at": "2026-06-08 02:48",
+    "updated_at": "2026-06-08 02:48"
+  },
+  "afe806042809": {
+    "id": "afe806042809",
+    "url": "https://partner.huawei.com/eplus/marketing/#/cn/web/materialPreview?itemId=demo3&platType=partnerMD",
+    "product_id": "pura70",
+    "title": "Pura70全家福产品图",
+    "tags": [
+      "产品",
+      "图片",
+      "视觉"
+    ],
+    "notes": "多角度高清产品图",
+    "status": "待抓取",
+    "files": [],
+    "created_at": "2026-06-08 02:48",
+    "updated_at": "2026-06-08 02:48"
+  },
+  "bdcfdc8a7e52": {
+    "id": "bdcfdc8a7e52",
+    "url": "https://partner.huawei.com/eplus/marketing/#/cn/web/materialPreview?itemId=9e8743b29287485db06ba26e3298567d&platType=partnerMD",
+    "product_id": "df10",
+    "title": "灵眸DF10版本升级指导视频",
+    "tags": [
+      "DF10",
+      "版本升级",
+      "指导视频"
+    ],
+    "notes": "含高清/标清视频(.mp4)和封面截图(.png)，附件可下载",
+    "status": "待抓取",
+    "files": [],
+    "created_at": "2026-06-08 03:04",
+    "updated_at": "2026-06-08 03:04"
+  },
+  "e38c91d555bb": {
+    "id": "e38c91d555bb",
+    "url": "https://e.huawei.com/marketingcloud/pep/asset/20000001/Material/4027a7f4e9484a92ad247ee9021f3789/M3T1A590N1246113915420152093/%E5%8D%8E%E4%B8%BA%E7%81%B5%E7%9C%B8AirEngine%20DF10%E6%96%B0%E4%B8%80%E4%BB%A3%E9%9A%90%E8%97%8F%E5%BD%B1%E5%83%8F%E8%AE%BE%E5%A4%87%E6%A3%80%E6%B5%8B%E4%BA%A7%E5%93%81%E5%BD%A9%E9%A1%B5.pdf",
+    "product_id": "df10",
+    "title": "华为灵眸AirEngine DF10产品彩页",
+    "tags": [
+      "DF10",
+      "产品彩页",
+      "产品规格"
+    ],
+    "notes": "PDF文档，1.3MB，含产品功能、规格、应用场景介绍",
+    "status": "待抓取",
+    "files": [],
+    "created_at": "2026-06-08 03:04",
+    "updated_at": "2026-06-08 03:04"
+  },
+  "fde32e497f50": {
+    "id": "fde32e497f50",
+    "url": "https://support.huawei.com/enterprise/zh/multimedia/enterpriseCloudCore?pbiId=PBI2-262426686",
+    "product_id": "df10",
+    "title": "华为灵眸DF10防偷拍使用指南",
+    "tags": [
+      "DF10",
+      "使用指南",
+      "视频教程"
+    ],
+    "notes": "support.huawei.com 上的多媒体页面",
+    "status": "待抓取",
+    "files": [],
+    "created_at": "2026-06-08 03:04",
+    "updated_at": "2026-06-08 03:04"
+  }
+}
