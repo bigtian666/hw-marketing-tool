@@ -1,44 +1,106 @@
-# 华为伙伴营销内容协作平台 - 配置
-# 管理员可在后台修改此配置
-
 brand:
-  name: "华为坤灵"
-  slogan: "遥遥领先"
-  tone: ["专业", "亲切", "高端", "科技感"]
-
+  name: 华为坤灵
+  slogan: 遥遥领先
+  tone:
+  - 专业
+  - 亲切
+  - 高端
+  - 科技感
 products:
-  - id: "df10"
-    name: "ekitEngine DF10"
-    keywords: ["ekitEngine", "DF10", "防偷拍", "隐藏影像检测"]
-    directions:
-      - id: "product_showcase"
-        name: "产品种草"
-        prompt_hint: "突出产品核心卖点和使用场景"
-        output_types: ["文案+配图", "短视频", "脚本"]
-      - id: "activity"
-        name: "活动推广"
-        prompt_hint: "结合促销/节日/活动节点"
-        output_types: ["文案+配图", "短视频", "脚本"]
-      - id: "scene_story"
-        name: "场景故事"
-        prompt_hint: "结合真实使用场景讲故事"
-        output_types: ["文案+配图", "短视频", "脚本"]
-      - id: "user_case"
-        name: "客户案例"
-        prompt_hint: "以客户视角讲述使用体验"
-        output_types: ["文案+配图", "短视频", "脚本"]
-
+- id: df10
+  name: ekitEngine DF10
+  keywords:
+  - ekitEngine
+  - DF10
+  - 防偷拍
+  - 隐藏影像检测
+  directions:
+  - id: product_showcase
+    name: 产品种草
+    prompt_hint: 突出产品核心卖点和使用场景
+    output_types:
+    - 文案+配图
+    - 短视频
+    - 脚本
+  - id: activity
+    name: 活动推广
+    prompt_hint: 结合促销/节日/活动节点，营造活动氛围
+    output_types:
+    - 文案+配图
+    - 短视频
+    - 脚本
+  - id: scene_story
+    name: 场景故事
+    prompt_hint: 结合真实使用场景讲故事，引发用户共鸣
+    output_types:
+    - 文案+配图
+    - 短视频
+    - 脚本
+  - id: user_case
+    name: 客户案例
+    prompt_hint: 以客户视角讲述使用体验，突出客户证言价值
+    output_types:
+    - 文案+配图
+    - 短视频
+    - 脚本
+  - id: product_compare
+    name: 产品测评
+    prompt_hint: 客观对比产品功能特性，突出差异化优势
+    output_types:
+    - 文案+配图
+    - 短视频
+    - 脚本
+  - id: brand_story
+    name: 品牌故事
+    prompt_hint: 围绕品牌理念和价值观讲故事，提升品牌认同感
+    output_types:
+    - 文案+配图
+    - 短视频
+    - 脚本
+  - id: tech_deep
+    name: 技术解读
+    prompt_hint: 深入讲解产品的技术亮点和创新点，体现技术实力
+    output_types:
+    - 文案+配图
+    - 短视频
+    - 脚本
+  - id: industry_insight
+    name: 行业洞察
+    prompt_hint: 结合行业趋势和痛点，提供前瞻性观点和解决方案
+    output_types:
+    - 文案+配图
+    - 短视频
+    - 脚本
+  - id: holiday
+    name: 节日营销
+    prompt_hint: 结合节日/热点事件，进行情感化营销传播
+    output_types:
+    - 文案+配图
+    - 短视频
+    - 脚本
+  - id: partner_recruit
+    name: 伙伴招募
+    prompt_hint: 面向潜在合作伙伴展示合作价值和政策吸引力
+    output_types:
+    - 文案+配图
+    - 短视频
+    - 脚本
+  - id: other
+    name: 其他
+    prompt_hint: 自定义营销方向，灵活应对各类推广需求
+    output_types:
+    - 文案+配图
+    - 短视频
+    - 脚本
 rules:
   forbidden_words:
-    - "最"  # 极限词谨慎使用
-    - "第一"
-    - "绝对"
+  - 最
+  - 第一
+  - 绝对
   required_words:
-    - "华为坤灵"
+  - 华为坤灵
   brand_phrases:
-    - "华为坤灵 %s"
-    - "华为坤灵"
-
+  - 华为坤灵 %s
+  - 华为坤灵
 review:
-  # 审核通过后的内容是否自动标记为"可供所有伙伴使用"
   auto_share_materials: true

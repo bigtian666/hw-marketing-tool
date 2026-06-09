@@ -26,13 +26,7 @@ def generate_copy(product, direction, partner_idea, materials_context="", histor
     brand_name = "华为坤灵"
     product_name = product.get("name", "")
 
-    direction_names = {
-        "product_showcase": "产品种草",
-        "activity": "活动推广",
-        "scene_story": "场景故事",
-        "user_case": "客户案例",
-    }
-    direction_name = direction_names.get(direction.get("id", ""), "营销推广")
+    direction_name = direction.get("name", "营销推广")
 
     # 读取合规规则嵌入提示词（不在前端展示）
     rules = _load_config().get("rules", {})
@@ -68,6 +62,7 @@ def generate_copy(product, direction, partner_idea, materials_context="", histor
 
     prompt = f"""产品: {product_name}
 营销方向: {direction_name}
+方向核心策略: {direction.get("prompt_hint", "")}
 合作伙伴的创意想法: {partner_idea}{history_block}
 
 参考素材:
@@ -117,6 +112,7 @@ def generate_video_script(product, direction, partner_idea, materials_context=""
 
     prompt = f"""产品: {product_name}
 营销方向: {direction.get("name", "营销推广")}
+方向核心策略: {direction.get("prompt_hint", "")}
 合作伙伴的创意想法: {partner_idea}{history_block}
 
 参考素材:

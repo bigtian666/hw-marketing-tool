@@ -249,27 +249,39 @@ def render_partner_page(product, config):
         )
 
     with bottom_col2:
-        # 方向下拉
-        dir_options = {d["name"]: d for d in directions}
+        # 方向下拉（含 prompt_hint 作为提示）
+        dir_options = {d["name"]: {**d} for d in directions}
         dir_names = list(dir_options.keys())
-        default_dir = dir_names[0] if dir_names else "自定义"
-        sel_dir_name = st.selectbox("方向", dir_names, label_visibility="collapsed", key="chat_dir")
+        sel_dir_name = st.selectbox("方向", dir_names, index=0, label_visibility="collapsed", key="chat_dir")
         current_direction = dir_options[sel_dir_name]
+        # 如果有 prompt_hint 则显示在下方
+        hint = current_direction.get("prompt_hint", "")
+        if sel_dir_name == "其他":
+            custom_hint = st.text_input("自定义方向描述", placeholder="例如：新品发布会倒计时预热", key="custom_dir_hint")
+            if custom_hint:
+                current_direction = {
+                    "id": "custom",
+                    "name": f"其他 - {custom_hint}",
+                    "prompt_hint": custom_hint,
+                }
+                st.caption(f"💡 {custom_hint}")
+        elif hint:
+            st.caption(f"💡 {hint}")
 
     with bottom_col3:
-        # 输出形式多选下拉
-        sel_types = st.multiselect(
-            "输出", all_output_types,
-            default=["文案+配图"],
+        # 输出形式：单选，文案始终附带
+        sel_type = st.radio(
+            "输出形式", all_output_types,
+            index=0, horizontal=True,
             label_visibility="collapsed",
-            key="chat_output_types",
+            key="chat_output_type",
         )
 
     # 发送按钮
     send_clicked = st.button("🚀 发送", type="primary", use_container_width=True)
 
     # ─── 处理发送 ───
-    if send_clicked and user_input.strip() and sel_types:
+    if send_clicked and user_input.strip():
         # 清除输入框中的修改草稿
         st.session_state._revise_idea = ""
 
@@ -305,24 +317,19 @@ def render_partner_page(product, config):
         with st.spinner("🤔 AI 正在思考中..."):
             result = {}
             try:
-                if "文案+配图" in sel_types or "脚本" in sel_types:
-                    result["copy"] = generate_copy(
-                        product, current_direction,
-                        user_input.strip(), materials_context, history_context,
-                    )
-                if "脚本" in sel_types or "短视频" in sel_types:
+                # 无论选什么输出形式，都生成文案
+                result["copy"] = generate_copy(
+                    product, current_direction,
+                    user_input.strip(), materials_context, history_context,
+                )
+                if sel_type == "短视频" or sel_type == "脚本":
                     result["script"] = generate_video_script(
                         product, current_direction,
                         user_input.strip(), materials_context, history_context,
                     )
-                if "短视频" in sel_types and "文案+配图" not in sel_types:
-                    result["video_copy"] = generate_copy(
-                        product, current_direction,
-                        user_input.strip(), materials_context, history_context,
-                    )
-                elif "短视频" in sel_types:
+                if sel_type == "短视频":
                     result["video_copy"] = result.get("copy", "")
-                if "文案+配图" in sel_types:
+                if sel_type == "文案+配图":
                     # 收集参考素材描述
                     logo_path = st.session_state.get("logo_file")
                     creative_refs = st.session_state.get("creative_ref_files", [])
@@ -345,7 +352,7 @@ def render_partner_page(product, config):
                     )
                     result["images"] = images
                     result["image_prompts"] = prompts
-                if "短视频" in sel_types:
+                if sel_type == "短视频":
                     video_prompt = f"{user_input.strip()}\n产品: {product.get('name', '')} 营销推广视频，竖屏"
                     result["video_path"] = generate_video(product, user_input.strip(), prompt=video_prompt)
             except Exception as e:
