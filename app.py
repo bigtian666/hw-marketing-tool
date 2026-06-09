@@ -175,6 +175,8 @@ def render_partner_page(product, config):
     st.markdown("### 📎 参考素材（系统自动匹配）")
     prod_links = get_links(product.get("id"))
     prod_materials = get_materials(product.get("id"))
+    # 收集所有物料名字供 LLM 上下文使用
+    matched_materials = list(prod_links.values()) + list(prod_materials.values())
     if prod_links:
         for lid, link in prod_links.items():
             status_icon = {"待抓取": "⏳", "已抓取": "📋", "已下载": "✅", "失效": "❌"}
@@ -187,6 +189,7 @@ def render_partner_page(product, config):
             icon = type_icons.get(mat.get("type", ""), "📁")
             st.caption(f"{icon} {mat.get('name', '未命名')}")
     else:
+        matched_materials = []
         st.caption("ℹ️ 暂无参考素材，仍可提交创意让大模型帮你生成")
 
     # 生成按钮
