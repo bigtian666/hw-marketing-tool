@@ -61,7 +61,9 @@ DEFAULT_STATE = {
     "materials_loaded": False,
     "_sel_dir": None,
     "_reviewing": None,
-
+    "chat_messages": [],
+    "_revise_idea": "",
+    "_revise_result_id": None,
 }
 for key, val in DEFAULT_STATE.items():
     if key not in st.session_state:
@@ -75,328 +77,194 @@ products = config.get("products", [])
 # 伙伴端页面
 # ═══════════════════════════════════════════════════════════════
 def render_partner_page(product, config):
-    st.title("🎬 创建你的营销内容")
-    st.caption(f"当前产品：**{product['name']}**")
+    """伙伴端 — 对话式AI界面，类似豆包对话框"""
+    # 初始化对话记忆
+    if "chat_messages" not in st.session_state:
+        st.session_state.chat_messages = []
+        st.session_state._pending_regenerate = False
 
-    # 第一步：选择营销方向
-    st.markdown("### 📋 第一步：选择营销方向")
     directions = product.get("directions", [])
+    all_output_types = ["文案+配图", "短视频", "脚本"]
 
-    cols = st.columns(len(directions))
-    selected_direction = None
-    for i, d in enumerate(directions):
-        with cols[i]:
-            icons = {
-                "product_showcase": "🛍️",
-                "activity": "🎉",
-                "scene_story": "🎬",
-                "user_case": "💬",
-            }
-            icon = icons.get(d["id"], "📌")
-            is_selected = st.session_state.get("_sel_dir") == d["id"]
-            btn_type = "primary" if is_selected else "secondary"
-            if st.button(f"{icon}\n{d['name']}", use_container_width=True,
-                         key=f"dir_{d['id']}", type=btn_type):
-                st.session_state["_sel_dir"] = d["id"]
-                st.session_state.generated_content = None
-                st.session_state.generated_images = None
-                st.session_state.submitted = False
-                st.session_state.custom_direction = ""
-                st.rerun()
+    # ─── 顶栏：产品信息 ───
+    st.markdown(f"### 🎬 创作伙伴 — {product['name']}")
+    st.caption("像聊天一样描述你的想法，AI 自动生成营销内容并支持反复打磨 ✨")
 
-    # 自定义营销方向
-    st.markdown("##### ✏️ 或自定义方向")
-    custom_dir = st.text_input(
-        "输入你自己的营销方向名称",
-        placeholder="例如：节日促销、新品发布会、客户见面会…",
-        key="custom_dir_input",
-        value=st.session_state.get("custom_direction", "")
-    )
-    if custom_dir.strip():
-        if st.button("✅ 使用自定义方向：" + custom_dir[:30],
-                     use_container_width=True, type="secondary",
-                     key="use_custom_dir"):
-            st.session_state["_sel_dir"] = "custom"
-            st.session_state.custom_direction = custom_dir.strip()
-            st.session_state.generated_content = None
-            st.session_state.generated_images = None
-            st.session_state.submitted = False
-            st.rerun()
+    # ─── 显示对话历史（类似豆包 / ChatGPT） ───
+    chat_container = st.container()
+    with chat_container:
+        if not st.session_state.chat_messages:
+            # 空状态引导
+            st.info("💡 在下方输入你的创意想法，比如：\n\n"
+                    "> 「我想突出 DF10 的防偷拍检测功能，用'出差住酒店安全检测'这个场景」\n\n"
+                    "AI 会自动根据你选择的营销方向和输出形式生成内容。")
+        else:
+            for msg in st.session_state.chat_messages:
+                with st.chat_message(msg["role"]):
+                    if msg["role"] == "user":
+                        st.markdown(msg["content"])
+                    else:
+                        result = msg.get("result", {})
+                        if result.get("copy"):
+                            st.markdown("**📝 朋友圈文案**")
+                            st.markdown(f"""<div style="background:#f0f8ff;padding:16px;border-radius:10px;border:1px solid #b0d4f1;"><pre style="white-space:pre-wrap;font-family:inherit;margin:0;">{result['copy']}</pre></div>""", unsafe_allow_html=True)
+                            st.button("📋 复制", key=f"cpy_{msg['id']}")
+                        if result.get("script"):
+                            st.markdown("**🎬 视频分镜脚本**")
+                            st.markdown(f"""<div style="background:#f8f9fa;padding:16px;border-radius:10px;border:1px solid #e0e0e0;"><pre style="white-space:pre-wrap;font-family:inherit;margin:0;">{result['script']}</pre></div>""", unsafe_allow_html=True)
+                        if result.get("video_copy"):
+                            st.markdown("**🎬 短视频配文**")
+                            with st.container(border=True):
+                                st.markdown(result["video_copy"])
+                        if result.get("images"):
+                            st.markdown("**🖼️ 配图**")
+                            for i, img_path in enumerate(result["images"]):
+                                if img_path and Path(img_path).exists():
+                                    cap = ""
+                                    if result.get("image_prompts") and i < len(result["image_prompts"]):
+                                        cap = result["image_prompts"][i]
+                                    st.image(img_path, caption=cap, width=350)
+                                elif result.get("image_prompts") and i < len(result["image_prompts"]):
+                                    st.info(f"🖼️ {result['image_prompts'][i]}")
+                        if result.get("video_path"):
+                            st.markdown("**🎬 短视频**")
+                            vp = result["video_path"]
+                            if Path(vp).exists():
+                                st.success("✅ 视频已生成 [待审核通过后可下载]")
+                            else:
+                                st.info("🎬 视频生成中...")
+                        
+                        # 该条消息的提交/继续按钮
+                        if msg.get("can_submit") and not msg.get("submitted"):
+                            c1, c2 = st.columns([1, 1])
+                            with c1:
+                                if st.button("✋ 满意了，提交审核", type="primary", use_container_width=True,
+                                             key=f"submit_{msg['id']}"):
+                                    _submit_content(product, msg.get("direction") or directions[0],
+                                                     msg["content"], result)
+                                    msg["submitted"] = True
+                                    st.rerun()
+                            with c2:
+                                if st.button("🔄 继续修改", use_container_width=True,
+                                             key=f"regen_{msg['id']}"):
+                                    st.session_state._revise_idea = msg["content"]
+                                    st.session_state._revise_result_id = msg["id"]
+                                    st.rerun()
 
-    selected_direction_id = st.session_state.get("_sel_dir")
-    current_direction = None
-    custom_direction_name = ""
-    if selected_direction_id == "custom":
-        custom_direction_name = st.session_state.get("custom_direction", "自定义")
-        current_direction = {
-            "id": "custom",
-            "name": custom_direction_name,
-            "prompt_hint": f"自定义方向：{custom_direction_name}",
-            "output_types": ["文案+配图", "短视频", "脚本"],
-        }
-    elif selected_direction_id:
-        for d in directions:
-            if d["id"] == selected_direction_id:
-                current_direction = d
-                break
-
-    if current_direction:
-        st.info(f"📌 已选方向：**{current_direction['name']}** | "
-                f"支持输出：{'、'.join(current_direction['output_types'])}")
-
-    # 第二步：伙伴输入创意
-    st.markdown("### 💡 第二步：发挥你的创意")
-    st.markdown("写下你的想法，越具体生成的內容越符合预期 👇")
-
-    partner_idea = st.text_area(
-        "你的创意想法",
-        placeholder=(
-            "例：我想突出ekitEngine DF10防偷拍检测功能，用'出差住酒店安全检测'这个场景，\n"
-            "展现一键检测隐藏摄像头的便捷，配上'安心出行，隐私无忧'这个主题……"
-        ),
-        height=150, key="idea_input",
-        value=st.session_state.partner_idea
-    )
-    st.session_state.partner_idea = partner_idea
-
-    if not selected_direction_id:
-        st.warning("👆 请先选择一个营销方向")
-        return
-    if not partner_idea.strip():
-        st.warning("✍️ 请输入你的创意想法")
-        return
-
-    # 第三步：选择输出形式
-    st.markdown("### 🎯 第三步：选择输出形式")
-    output_types = current_direction["output_types"]
-    output_cols = st.columns(len(output_types))
-    selected_types = []
-    for i, ot in enumerate(output_types):
-        with output_cols[i]:
-            icons_map = {"文案+配图": "📝", "短视频": "🎬", "脚本": "📋"}
-            icon = icons_map.get(ot, "📌")
-            default_val = (ot == "文案+配图")
-            if st.checkbox(f"{icon} {ot}", key=f"ot_{ot}", value=default_val):
-                selected_types.append(ot)
-
-    if not selected_types:
-        st.warning("请至少选择一种输出形式")
-        return
-
-    # 知识库素材预览 — 当前产品的所有物料，1:1匹配
-    st.markdown("### 📎 参考素材（系统自动匹配）")
-    prod_links = get_links(product.get("id"))
-    prod_materials = get_materials(product.get("id"))
-    # 收集所有物料名字供 LLM 上下文使用
-    matched_materials = list(prod_links.values()) + list(prod_materials.values())
-    if prod_links:
-        for lid, link in prod_links.items():
-            status_icon = {"待抓取": "⏳", "已抓取": "📋", "已下载": "✅", "失效": "❌"}
-            icon = status_icon.get(link.get("status", ""), "🔗")
-            st.caption(f"{icon} {link.get('title', '未命名')}")
-    elif prod_materials:
-        type_icons = {"文档": "📄", "PPT": "📊", "图片": "🖼️",
-                      "视频": "🎬", "表格": "📋", "其他": "📁"}
-        for mat in prod_materials:
-            icon = type_icons.get(mat.get("type", ""), "📁")
-            st.caption(f"{icon} {mat.get('name', '未命名')}")
-    else:
-        matched_materials = []
-        st.caption("ℹ️ 暂无参考素材，仍可提交创意让大模型帮你生成")
-
-    # 生成按钮
+    # ─── 底部固定输入栏（类似豆包） ───
     st.markdown("---")
-    col1, col2, col3 = st.columns([1, 1, 1])
-    with col2:
-        generate_btn = st.button("🚀 生成内容", use_container_width=True, type="primary")
+    bottom_col1, bottom_col2, bottom_col3 = st.columns([3, 1, 1])
 
-    if generate_btn:
-        with st.spinner("正在生成内容，请稍候..."):
-            materials_context = ""
-            if matched_materials:
-                names = []
-                for m in matched_materials[:3]:
-                    names.append(m.get("name", m.get("title", "未命名")))
-                materials_context = "、".join(names)
+    with bottom_col1:
+        user_input = st.text_input(
+            "💬 描述你的创意",
+            placeholder="例如：突出防偷拍检测，酒店出差场景…",
+            label_visibility="collapsed",
+            key="chat_input",
+            value=st.session_state.get("_revise_idea", ""),
+        )
 
-            result = {}
-            has_copy = "文案+配图" in selected_types or "脚本" in selected_types
-            has_video = "短视频" in selected_types
+    with bottom_col2:
+        # 方向下拉
+        dir_options = {d["name"]: d for d in directions}
+        dir_names = list(dir_options.keys())
+        default_dir = dir_names[0] if dir_names else "自定义"
+        sel_dir_name = st.selectbox("方向", dir_names, label_visibility="collapsed", key="chat_dir")
+        current_direction = dir_options[sel_dir_name]
 
-            # 文案/脚本生成 — 只生成用户勾选的内容
-            if "文案+配图" in selected_types or "脚本" in selected_types:
-                result["copy"] = generate_copy(product, current_direction,
-                                                partner_idea, materials_context)
-            if "脚本" in selected_types or "短视频" in selected_types:
-                result["script"] = generate_video_script(
-                    product, current_direction, partner_idea, materials_context)
-            # 短视频配文
-            if "短视频" in selected_types and "文案+配图" not in selected_types:
-                result["video_copy"] = generate_copy(product, current_direction,
-                                                       partner_idea, materials_context)
-            elif "短视频" in selected_types:
-                result["video_copy"] = result.get("copy", "")
-            # 配图生成
-            if "文案+配图" in selected_types:
-                images, prompts = generate_images(
-                    product, partner_idea, result.get("copy", ""), count=1)
-                result["images"] = images
-                result["image_prompts"] = prompts
-            # 短视频（跳过，无视频渲染引擎）
-            if "短视频" in selected_types:
-                # 视频生成由可灵AI异步完成（调用前需开通服务）
-                video_prompt = f"""{partner_idea}
-产品: {product.get('name', '')} 营销推广视频，竖屏"""
-                result["video_path"] = generate_video(product, partner_idea, prompt=video_prompt)
+    with bottom_col3:
+        # 输出形式多选下拉
+        sel_types = st.multiselect(
+            "输出", all_output_types,
+            default=["文案+配图"],
+            label_visibility="collapsed",
+            key="chat_output_types",
+        )
 
-            st.session_state.generated_content = result
-            st.session_state.submitted = False
-            st.rerun()
+    # 发送按钮
+    send_clicked = st.button("🚀 发送", type="primary", use_container_width=True)
 
-    # ─── 显示生成结果 ─────────────────────────────────
-    if st.session_state.generated_content:
-        result = st.session_state.generated_content
+    # ─── 处理发送 ───
+    if send_clicked and user_input.strip() and sel_types:
+        # 清除输入框中的修改草稿
+        st.session_state._revise_idea = ""
 
-        st.markdown("---")
-        st.markdown("## ✅ 生成结果预览")
-
-        if result.get("copy"):
-            st.markdown("### 📝 朋友圈文案")
-            st.markdown(f"""
-            <div style="background:#f8f9fa;padding:20px;border-radius:10px;border:1px solid #e0e0e0;">
-                <pre style="white-space:pre-wrap;font-family:inherit;margin:0;">{result['copy']}</pre>
-            </div>
-            """, unsafe_allow_html=True)
-            if st.button("📋 复制文案", key="cpy"):
-                st.toast("文案已就绪！", icon="✅")
-
-        if result.get("video_copy") and "短视频" in selected_types:
-            st.markdown("### 🎬 短视频配文（口播/配图文案）")
-            st.markdown(f"""
-            <div style="background:#f0f8ff;padding:20px;border-radius:10px;border:1px solid #b0d4f1;">
-                <pre style="white-space:pre-wrap;font-family:inherit;margin:0;">{result['video_copy']}</pre>
-            </div>
-            """, unsafe_allow_html=True)
-
-        if result.get("script"):
-            st.markdown("### 🎬 视频分镜脚本")
-            st.markdown(f"""
-            <div style="background:#f8f9fa;padding:20px;border-radius:10px;border:1px solid #e0e0e0;">
-                <pre style="white-space:pre-wrap;font-family:inherit;margin:0;">{result['script']}</pre>
-            </div>
-            """, unsafe_allow_html=True)
-
-        if result.get("images"):
-            st.markdown("### 🖼️ 配图")
-            for i, img in enumerate(result["images"]):
-                if img and Path(img).exists():
-                    cap = ""
-                    if result.get("image_prompts") and i < len(result["image_prompts"]):
-                        cap = result["image_prompts"][i]
-                    st.image(img, caption=cap)
-                elif result.get("image_prompts") and i < len(result["image_prompts"]):
-                    st.info(f"🖼️ 配图创意：{result['image_prompts'][i]}")
-                    st.caption("（图片生成服务连接中，正式部署后自动渲染）")
-
-        if result.get("video_path"):
-            st.markdown("### 🎬 短视频")
-            vp = result["video_path"]
-            if Path(vp).exists():
-                st.success(f"✅ 视频已生成 [待审核通过后可下载]")
+        # 构建上下文（最近 N 轮的历史）
+        history_context = ""
+        recent = st.session_state.chat_messages[-6:]  # 最近3轮对话
+        for m in recent:
+            role = "用户" if m["role"] == "user" else "AI"
+            if m["role"] == "user":
+                history_context += f"[用户] {m['content']}\n"
             else:
-                st.info("🎬 视频生成中，正式部署后将直接输出可下载的 mp4")
+                summary = m.get("result", {}).get("copy", "")[:100]
+                history_context += f"[AI] {summary}\n"
 
-        # 迭代修改区
-        st.markdown("---")
-        st.markdown("### 🔄 不满意？继续打磨！")
-        st.markdown("调整上面的创意想法，重新生成即可。可以反复迭代直到满意 ✨")
+        # 收集知识库素材
+        prod_links = get_links(product.get("id"))
+        prod_materials = get_materials(product.get("id"))
+        matched = list(prod_links.values()) + list(prod_materials.values())
+        materials_context = ""
+        if matched:
+            names = [m.get("name", m.get("title", "")) for m in matched[:3]]
+            materials_context = "、".join(n for n in names if n)
 
-        # 提交审核（使用数据库）
-        st.markdown("---")
-        col_a, col_b = st.columns([1, 1])
-        with col_a:
-            if not st.session_state.submitted:
-                    if st.button("✋ 满意了，提交审核", type="primary",
-                                 use_container_width=True):
-                        # 写入数据库
-                        content_id = submit_content(
-                            product=product,
-                            direction=current_direction,
-                            idea=partner_idea,
-                            copy=result.get("copy", ""),
-                            script=result.get("script", ""),
-                            video_script=result.get("video_copy", ""),
-                            image_prompts=result.get("image_prompts", []),
-                            image_paths=[p for p in result.get("images", []) if p],
-                        )
-                        # 如果有视频，也存进去
-                        vp = result.get("video_path")
-                        if vp and Path(vp).exists():
-                            save_video(content_id, vp)
-                        st.session_state["_last_content_id"] = content_id
-                        st.session_state.submitted = True
-                        st.rerun()
-            with col_b:
-                if not st.session_state.submitted:
-                    if st.button("🔄 继续修改", use_container_width=True):
-                        st.session_state.submitted = False
-                        st.rerun()
-            if st.session_state.submitted:
-                cid = st.session_state.get("_last_content_id")
-                submitted_item = get_content_by_id(cid) if cid else None
-                if submitted_item:
-                    st.success(f"🎉 **已提交审核！** 作品编号：{cid[:12]}，等待审核通过后即可下载视频。")
-                    st.balloons()
-                else:
-                    st.success("🎉 **已提交审核！** 等待审核通过后即可使用。")
-                    st.balloons()
+        # 添加用户消息
+        user_msg_id = f"u_{int(time.time())}"
+        st.session_state.chat_messages.append({
+            "role": "user",
+            "id": user_msg_id,
+            "content": user_input.strip(),
+        })
 
-    # ═══ 显示伙伴的历史提交记录与审核结果 ═══
-    st.markdown("---")
-    st.markdown("### 📋 我的提交记录")
-    all_my_contents = get_all_contents()
-    if all_my_contents:
-        status_icons = {"pending": "⏳", "approved": "✅", "rejected": "❌"}
-        for c in all_my_contents:
-            icon = status_icons.get(c["status"], "📌")
-            with st.container(border=True):
-                col1, col2 = st.columns([4, 1])
-                with col1:
-                    st.markdown(f"{icon} **{c['product_name']}** | {c['direction_name']}")
-                    st.caption(f"创意：{c['idea'][:80]}… | 提交时间：{c['created_at']}")
-                    if c["review_comment"]:
-                        if c["status"] == "rejected":
-                            st.warning(f"📝 修改意见：{c['review_comment']}")
-                        else:
-                            st.info(f"💬 审核备注：{c['review_comment']}")
-                with col2:
-                    status_label = {"pending": "待审核", "approved": "已通过", "rejected": "已退回"}
-                    st.caption(status_label.get(c["status"], c["status"]))
-                # 已通过的可以查看内容并下载视频
-                if c["status"] == "approved":
-                    with st.expander("📂 查看已通过内容"):
-                        if c["copy"]:
-                            st.markdown("**文案：**")
-                            st.code(c["copy"])
-                        if c["video_script"]:
-                            st.markdown("**短视频配文：**")
-                            st.code(c["video_script"])
-                        # 显示可下载的视频（只有通过后才展示下载按钮）
-                        videos = get_videos_for_content(c["id"])
-                        for v in videos:
-                            if v["status"] == "approved" and Path(v["filepath"]).exists():
-                                with open(v["filepath"], "rb") as f:
-                                    st.download_button(
-                                        f"📥 下载视频 ({v['filename']})",
-                                        f,
-                                        file_name=v["filename"],
-                                        use_container_width=True
-                                    )
-                            elif v["status"] == "approved":
-                                st.info(f"🎬 视频已就绪：{v['filename']}")
-    else:
-        st.caption("暂无提交记录")
+        # 生成内容
+        with st.spinner("🤔 AI 正在思考中..."):
+            result = {}
+            try:
+                if "文案+配图" in sel_types or "脚本" in sel_types:
+                    result["copy"] = generate_copy(
+                        product, current_direction,
+                        user_input.strip(), materials_context, history_context,
+                    )
+                if "脚本" in sel_types or "短视频" in sel_types:
+                    result["script"] = generate_video_script(
+                        product, current_direction,
+                        user_input.strip(), materials_context, history_context,
+                    )
+                if "短视频" in sel_types and "文案+配图" not in sel_types:
+                    result["video_copy"] = generate_copy(
+                        product, current_direction,
+                        user_input.strip(), materials_context, history_context,
+                    )
+                elif "短视频" in sel_types:
+                    result["video_copy"] = result.get("copy", "")
+                if "文案+配图" in sel_types:
+                    images, prompts = generate_images(
+                        product, user_input.strip(), result.get("copy", ""), count=1
+                    )
+                    result["images"] = images
+                    result["image_prompts"] = prompts
+                if "短视频" in sel_types:
+                    video_prompt = f"{user_input.strip()}\n产品: {product.get('name', '')} 营销推广视频，竖屏"
+                    result["video_path"] = generate_video(product, user_input.strip(), prompt=video_prompt)
+            except Exception as e:
+                result["error"] = str(e)
 
+        # 添加 AI 回复
+        assistant_msg_id = f"a_{int(time.time())}"
+        st.session_state.chat_messages.append({
+            "role": "assistant",
+            "id": assistant_msg_id,
+            "content": f"已根据你的创意「{user_input.strip()[:40]}…」生成内容 👇",
+            "result": result,
+            "direction": current_direction,
+            "can_submit": True,
+            "submitted": False,
+        })
+
+        st.rerun()
+
+    # ─── 提交辅助函数（已内联到按钮中） ───
 
 # ═══════════════════════════════════════════════════════════════
 # 审核端页面
@@ -536,6 +404,26 @@ def _render_link_list():
 # ═══════════════════════════════════════════════════════════════
 # 管理端页面
 # ═══════════════════════════════════════════════════════════════
+def _submit_content(product, direction, idea, result):
+    """提交内容到数据库"""
+    content_id = submit_content(
+        product=product,
+        direction=direction,
+        idea=idea,
+        copy=result.get("copy", ""),
+        script=result.get("script", ""),
+        video_script=result.get("video_copy", ""),
+        image_prompts=result.get("image_prompts", []),
+        image_paths=[p for p in result.get("images", []) if p],
+    )
+    vp = result.get("video_path")
+    if vp and Path(vp).exists():
+        save_video(content_id, vp)
+    st.session_state["_last_content_id"] = content_id
+    st.balloons()
+
+
+
 def render_management_page(config):
     st.title("⚙️ 知识库管理")
     st.caption("管理华为伙伴营销物料，支持链接和文件两种方式")

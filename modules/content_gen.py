@@ -21,7 +21,7 @@ if not DASHSCOPE_API_KEY:
         DASHSCOPE_API_KEY = key_path.read_text().strip()
 
 
-def generate_copy(product, direction, partner_idea, materials_context=""):
+def generate_copy(product, direction, partner_idea, materials_context="", history_context=""):
     """基于伙伴创意 + 知识库物料生成朋友圈文案"""
     brand_name = "华为坤灵"
     product_name = product.get("name", "")
@@ -61,9 +61,14 @@ def generate_copy(product, direction, partner_idea, materials_context=""):
 【合规约束（必须遵守）】
 {compliance_rule}"""
 
+    # 构建历史上下文（对话记忆）
+    history_block = ""
+    if history_context:
+        history_block = f"\n【历史对话（AI已有记忆）】\n{history_context.strip()}\n"
+
     prompt = f"""产品: {product_name}
 营销方向: {direction_name}
-合作伙伴的创意想法: {partner_idea}
+合作伙伴的创意想法: {partner_idea}{history_block}
 
 参考素材:
 {materials_context if materials_context else "无特定参考素材"}"""
@@ -72,7 +77,7 @@ def generate_copy(product, direction, partner_idea, materials_context=""):
     return content
 
 
-def generate_video_script(product, direction, partner_idea, materials_context=""):
+def generate_video_script(product, direction, partner_idea, materials_context="", history_context=""):
     """生成短视频脚本（分镜）"""
     brand_name = "华为坤灵"
     product_name = product.get("name", "")
@@ -105,9 +110,14 @@ def generate_video_script(product, direction, partner_idea, materials_context=""
 【合规约束（必须遵守）】
 {compliance_rule}"""
 
+    # 构建历史上下文（对话记忆）
+    history_block = ""
+    if history_context:
+        history_block = f"\n【历史对话（AI已有记忆）】\n{history_context.strip()}\n"
+
     prompt = f"""产品: {product_name}
 营销方向: {direction.get("name", "营销推广")}
-合作伙伴的创意想法: {partner_idea}
+合作伙伴的创意想法: {partner_idea}{history_block}
 
 参考素材:
 {materials_context if materials_context else "无特定参考素材"}"""
