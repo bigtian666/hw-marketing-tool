@@ -424,302 +424,216 @@ def _submit_content(product, direction, idea, result):
 
 
 
+
 def render_management_page(config):
+    """知识库管理 — 精简版：每个产品独立子库，上传链接+文件合一，品牌规则可编辑"""
     st.title("⚙️ 知识库管理")
-    st.caption("管理华为伙伴营销物料，支持链接和文件两种方式")
+    st.caption("每个产品拥有独立的知识子库，管理品牌规则和必选物料")
 
-    # 产品映射
-    prod_map = {p["name"]: p["id"] for p in products}
+    prod_map = {p["name"]: p for p in config.get("products", [])}
+    sel_name = st.selectbox("选择要管理的产品", list(prod_map.keys()), key="mgmt_prod")
+    product = prod_map[sel_name]
+    pid = product["id"]
 
-    # 知识库概览
-    stats = get_knowledge_stats()
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("📎 物料链接", stats["total_links"])
-    with col2:
-        st.metric("📁 本地文件", stats["total_files"])
-    with col3:
-        st.metric("⏳ 待抓取", stats["status_summary"]["待抓取"])
-    with col4:
-        st.metric("✅ 已下载", stats["status_summary"]["已下载"])
+    # 两个主标签页
+    tab1, tab2 = st.tabs(["📦 物料管理", "⚙️ 品牌规则"])
 
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "🔗 链接管理（推荐）",
-        "🔍 搜索导入物料",
-        "📤 上传文件",
-        "📚 全部素材",
-        "⚙️ 品牌规则"
-    ])
-
-    # ═══ Tab 1: 链接管理 ═══
+    # ═══ Tab 1: 物料管理（上传链接 + 上传文件 合一） ═══
     with tab1:
-        link_product = st.selectbox("归属产品", list(prod_map.keys()), key="link_prod")
+        st.markdown(f"### {product['name']} — 知识库物料")
+        st.caption("新增物料时自动归属于当前产品")
 
-        st.markdown("#### ➕ 添加单个链接")
-        col_a, col_b = st.columns([3, 1])
-        with col_a:
-            single_url = st.text_input(
-                "物料链接",
-                placeholder="https://partner.huawei.com/eplus/marketing/#/cn/web/materialPreview?...",
-                key="single_url_input"
-            )
-        with col_b:
-            if st.button("添加", type="primary", key="add_single", use_container_width=True):
-                pid = prod_map[link_product]
-                add_link(single_url, pid, tags=["手动添加"], notes="")
-                st.success("✅ 已添加！")
+        # 必选物料提示
+        ticons = {"文档": "📄", "PPT": "📊", "图片": "🖼️", "视频": "🎬", "表格": "📋", "其他": "📁"}
+        sicons = {"待抓取": "⏳", "已抓取": "📋", "已下载": "✅", "失效": "❌"}
 
-        st.divider()
+        # 现有的物料概览
+        links = get_links(pid)
+        materials = get_materials(pid)
 
-        st.markdown("#### 📋 批量添加链接")
-        urls_text = st.text_area(
-            "每行一个URL，批量导入", height=120,
-            placeholder=(
-                "https://partner.huawei.com/eplus/marketing/#/cn/...\n"
-                "https://partner.huawei.com/eplus/marketing/#/cn/..."
-            ),
-            key="batch_urls"
-        )
-        default_tags = st.text_input("默认标签（逗号分隔）", placeholder="产品, 卖点", key="batch_tags")
-        if st.button("批量导入", type="primary", use_container_width=True, key="batch_add"):
-            if urls_text.strip():
-                tags = [t.strip() for t in default_tags.split(",") if t.strip()]
-                added = add_links_batch(urls_text, prod_map[link_product], tags)
-                st.success(f"✅ 成功添加 {len(added)} 个链接！")
+        col_sum1, col_sum2, col_sum3 = st.columns(3)
+        with col_sum1:
+            st.metric("📎 物料链接", len(links))
+        with col_sum2:
+            st.metric("📁 本地文件", len(materials))
+        with col_sum3:
+            st.metric("📌 必选物料", sum(1 for m in materials.values() if "必选" in m.get("tags", [])))
 
         st.divider()
+        st.markdown("#### ➕ 新增物料")
 
-        st.markdown("#### 📑 已添加的链接")
-        _render_link_list()
+        # 合一表单：链接 或 文件
+        input_mode = st.radio("输入方式", ["🔗 链接", "📁 文件上传"], horizontal=True, key="input_mode")
 
-    # ═══ Tab 2: 搜索导入物料（推荐！） ═══
-    with tab2:
-        st.markdown("### 🔍 从 partner 网站搜索产品，自动导入物料")
-        st.info("""
-        **自动搜索（无需登录）：**
-        系统会自动搜索公开渠道（如 support.huawei.com / e.huawei.com）上与产品型号匹配的公开物料，
-        支持精准筛选——**只导入型号完全相同的物料**，不会混入相似型号。
-        """)
-
-        col_s1, col_s2 = st.columns([1, 1])
-        with col_s1:
-            search_keyword = st.text_input(
-                "搜索关键词（产品型号）",
-                placeholder="例如：DF10",
-                value="DF10",
-                key="scrape_kw"
-            )
-        with col_s2:
-            exact_model = st.text_input(
-                "精确匹配型号（不包含此关键词的物料会被过滤）",
-                placeholder="例如：DF10",
-                value="DF10",
-                key="scrape_exact"
-            )
-
-        scrape_prod = st.selectbox("归属产品", list(prod_map.keys()), key="scrape_prod")
-
-        col_b1, col_b2, col_b3 = st.columns([1, 1, 1])
-        with col_b2:
-            if st.button("🤖 自动搜索并导入物料", type="primary",
-                         use_container_width=True, key="auto_scrape"):
-                if search_keyword.strip() and exact_model.strip():
-                    pid = prod_map[scrape_prod]
-                    imported, downloaded, err = search_and_fetch_materials(
-                        product_keyword=search_keyword,
-                        exact_model=exact_model,
-                        product_id=pid
-                    )
-                    if err:
-                        st.warning(f"⚠️ {err}")
-                    st.success(f"✅ 导入完成！链接：{imported} 个，本地文件：{downloaded} 个")
-                    st.info("💡 只导入了型号完全匹配「' + exact_model + '」的物料，相似型号已过滤")
+        if input_mode == "🔗 链接":
+            url = st.text_input("物料链接", placeholder="https://partner.huawei.com/eplus/marketing/...", key="new_link_url")
+            link_title = st.text_input("物料标题（可选）", placeholder="留空自动从URL提取", key="new_link_title")
+            link_tags = st.text_input("标签（逗号分隔）", placeholder="产品, 卖点, 资料", key="new_link_tags")
+            must_have = st.checkbox("标记为必选物料", key="link_must")
+            if st.button("✅ 添加链接", type="primary", use_container_width=True, key="add_link_btn"):
+                if url.strip():
+                    tags = [t.strip() for t in link_tags.split(",") if t.strip()]
+                    if must_have:
+                        tags.append("必选")
+                    add_link(url.strip(), pid, title=link_title.strip(), tags=tags)
+                    st.success("✅ 链接已添加，系统将在后台自动处理")
                     st.rerun()
                 else:
-                    st.warning("请输入搜索关键词和精确匹配型号")
+                    st.warning("请输入链接地址")
+
+        else:
+            up_name = st.text_input("物料名称", placeholder="例如：DF10产品彩页_v3", key="up_file_name")
+            up_tags = st.text_input("标签（逗号分隔）", placeholder="产品, 卖点, 高清图", key="up_file_tags")
+            must_have_file = st.checkbox("标记为必选物料", key="file_must")
+            uploaded_file = st.file_uploader(
+                "选择文件（PDF/PPTX/PNG/JPG/MP4 等）",
+                type=["pdf", "pptx", "ppt", "docx", "png", "jpg", "jpeg", "mp4"],
+                key="mgmt_upload"
+            )
+            if uploaded_file and up_name.strip():
+                save_dir = Path(__file__).parent / "data" / "materials" / pid
+                save_dir.mkdir(parents=True, exist_ok=True)
+                fp = save_dir / uploaded_file.name
+                with open(fp, "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+                tags = [t.strip() for t in up_tags.split(",") if t.strip()]
+                if must_have_file:
+                    tags.append("必选")
+                add_material(str(fp), pid, up_name.strip(), tags)
+                st.success(f"✅ 物料「{up_name.strip()}」上传成功！")
+                st.balloons()
+                st.rerun()
+
+        st.divider()
+        st.markdown("#### 📋 当前物料列表")
+
+        # 合并显示链接和文件
+        all_items = []
+
+        # 排序：必选 > 其他
+        def sort_key(item):
+            tags = item.get("tags", [])
+            return (0 if "必选" in tags else 1, item.get("name", item.get("title", "")))
+
+        for m in materials.values():
+            icon = ticons.get(m.get("type", ""), "📁")
+            tag_str = " · ".join(m.get("tags", []))
+            must_badge = "⭐ " if "必选" in m.get("tags", []) else ""
+            all_items.append({
+                "icon": icon,
+                "name": m.get("name", "未命名"),
+                "detail": f"类型：{m.get('type', '')} | 大小：{m.get('size', 0)/1024:.0f}KB" + (f" | 标签：{tag_str}" if tag_str else ""),
+                "must": "必选" in m.get("tags", []),
+                "type": "file",
+            })
+
+        for l in links.values():
+            icon = sicons.get(l.get("status", ""), "🔗")
+            tag_str = " · ".join(l.get("tags", []))
+            must_badge = "⭐ " if "必选" in l.get("tags", []) else ""
+            all_items.append({
+                "icon": icon,
+                "name": l.get("title", "未命名"),
+                "detail": f"状态：{l.get('status', '')}" + (f" | 标签：{tag_str}" if tag_str else ""),
+                "must": "必选" in l.get("tags", []),
+                "type": "link",
+                "link_id": l.get("id"),
+            })
+
+        all_items.sort(key=lambda x: (0 if x["must"] else 1, x["name"]))
+
+        if all_items:
+            for item in all_items:
+                must_tag = "⭐ **必选** " if item["must"] else ""
+                with st.container(border=True):
+                    cols = st.columns([0.05, 0.65, 0.2, 0.1])
+                    with cols[0]:
+                        st.markdown(item["icon"])
+                    with cols[1]:
+                        st.markdown(f"{must_tag}**{item['name']}**")
+                        st.caption(item["detail"])
+                    with cols[2]:
+                        if item.get("link_id"):
+                            if st.button("🗑️ 删除", key=f"del_link_{item['link_id']}", use_container_width=True):
+                                delete_link(item["link_id"])
+                                st.rerun()
+        else:
+            st.info("暂无物料，请通过上方表单添加链接或上传文件")
+
+    # ═══ Tab 2: 品牌规则 ═══
+    with tab2:
+        st.markdown("### 品牌内容规则")
+        st.caption("手动添加一条一条的语言规则，AI 生成内容时会自动遵守")
+
+        # 显示已有规则
+        forbidden = config.get("rules", {}).get("forbidden_words", [])
+        required = config.get("rules", {}).get("required_words", [])
+        brand_phrases = config.get("rules", {}).get("brand_phrases", [])
+
+        # 规则列表
+        rule_col1, rule_col2 = st.columns(2)
+        with rule_col1:
+            st.markdown("**❌ 禁止使用词**")
+            if forbidden:
+                for w in forbidden:
+                    st.markdown(f"- ~~{w}~~ (禁用)")
+            else:
+                st.caption("暂无")
+
+        with rule_col2:
+            st.markdown("**✅ 必须包含词**")
+            if required:
+                for w in required:
+                    st.markdown(f"- **{w}** (必含)")
+            else:
+                st.caption("暂无")
 
         st.divider()
 
-        with st.expander("📋 手动粘贴物料链接（备选方案）", expanded=False):
-            st.markdown("如果自动搜索未找到足够物料，可手动从 partner 网站复制链接导入：")
-            st.caption("登录 [华为合作伙伴网站](https://partner.huawei.com/eplus/marketing)，搜索后逐个打开物料详情页，复制URL到下方，每行一个")
+        # 手动添加规则
+        st.markdown("#### ➕ 添加新规则")
+        rule_type = st.selectbox("规则类型", ["禁止词（禁用）", "必含词（必须出现）", "品牌话术"], key="rule_type")
+        rule_text = st.text_input("规则内容", placeholder="例如：最、第一、行业领先…", key="rule_text")
 
-            search_prod = st.selectbox("归属产品", list(prod_map.keys()), key="search_prod")
-            search_tags = st.text_input(
-                "统一标签（逗号分隔）",
-                placeholder="产品, 营销物料",
-                key="search_tags"
-            )
+        if st.button("✅ 添加规则", type="primary", use_container_width=True, key="add_rule"):
+            if rule_text.strip():
+                new_word = rule_text.strip()
+                from modules.knowledge_base import load_config
+                import yaml
+                cfg_path = Path(__file__).parent / "config.yaml"
+                with open(cfg_path, "r", encoding="utf-8") as f:
+                    cfg = yaml.safe_load(f)
 
-            search_urls = st.text_area(
-                "物料链接列表（每行一个）",
-                height=150,
-                placeholder=(
-                    "https://partner.huawei.com/eplus/marketing/#/cn/web/materialPreview?itemId=xxx1&platType=partnerMD\n"
-                    "https://partner.huawei.com/eplus/marketing/#/cn/web/materialPreview?itemId=xxx2&platType=partnerMD"
-                ),
-                key="search_urls_input"
-            )
+                if "禁止" in rule_type:
+                    if new_word not in cfg["rules"]["forbidden_words"]:
+                        cfg["rules"]["forbidden_words"].append(new_word)
+                        st.success(f"✅ 已添加禁止词「{new_word}」")
+                elif "必含" in rule_type:
+                    if new_word not in cfg["rules"]["required_words"]:
+                        cfg["rules"]["required_words"].append(new_word)
+                        st.success(f"✅ 已添加必含词「{new_word}」")
+                else:
+                    if new_word not in cfg["rules"]["brand_phrases"]:
+                        cfg["rules"]["brand_phrases"].append(new_word)
+                        st.success(f"✅ 已添加品牌话术「{new_word}」")
 
-            col_bb1, col_bb2, col_bb3 = st.columns([1, 2, 1])
-            with col_bb2:
-                if st.button("🚀 一键导入", use_container_width=True, key="manual_import"):
-                    if search_urls.strip():
-                        tags = ["手工导入"]
-                        if search_tags.strip():
-                            tags += [t.strip() for t in search_tags.split(",") if t.strip()]
-                        added = add_links_batch(search_urls, prod_map[search_prod], tags)
-                        st.success(f"✅ 成功导入 {len(added)} 个物料链接！")
+                with open(cfg_path, "w", encoding="utf-8") as f:
+                    yaml.dump(cfg, f, allow_unicode=True, indent=2, sort_keys=False)
+                st.rerun()
+            else:
+                st.warning("请输入规则内容")
 
-    # ═══ Tab 3: 上传文件 ═══
-    with tab3:
-        st.markdown("### 上传营销物料文件")
-        st.caption("从 partner 网站下载后上传，或上传本地文件")
-        up_prod = st.selectbox("归属产品", list(prod_map.keys()), key="tab1_up_prod")
-        mat_name = st.text_input("物料名称", placeholder="例如：Pura70产品彩页_v3", key="tab1_up_name")
-        mat_tags = st.text_input("标签（逗号分隔）", placeholder="产品, 卖点, 高清图", key="tab1_up_tags")
-        uploaded_file = st.file_uploader(
-            "选择文件（PDF/PPTX/PNG/JPG/MP4 等）",
-            type=["pdf", "pptx", "ppt", "docx", "png", "jpg", "jpeg", "mp4"],
-            key="tab1_up_file"
-        )
-        if uploaded_file and mat_name:
-            pid = prod_map[up_prod]
-            save_dir = Path(__file__).parent / "data" / "materials" / pid
-            save_dir.mkdir(parents=True, exist_ok=True)
-            fp = save_dir / uploaded_file.name
-            with open(fp, "wb") as f:
-                f.write(uploaded_file.getbuffer())
-            tags = [t.strip() for t in mat_tags.split(",") if t.strip()]
-            add_material(str(fp), pid, mat_name, tags)
-            st.success(f"✅ 物料「{mat_name}」上传成功！")
-            st.balloons()
+        st.divider()
 
-    # ═══ Tab 4: 全部素材 ═══
-    with tab4:
-        st.markdown("### 全部知识库素材")
-        all_materials = get_materials()
-        all_links = get_links()
-        total = len(all_materials) + len(all_links)
-        st.caption(f"共 {total} 项素材（{len(all_links)} 链接 + {len(all_materials)} 文件）")
-
-        kw = st.text_input("🔍 搜索素材", placeholder="输入关键词筛选...", key="mat_search")
-        if kw:
-            results = unified_search(kw)
-            st.caption(f"搜索「{kw}」找到 {len(results)} 项")
-            for m in results:
-                icon = "🔗" if m.get("_type") == "link" else "📁"
-                with st.container(border=True):
-                    st.markdown(f"{icon} **{m.get('title', m.get('name', '未命名'))}**")
-                    st.caption(f"产品：{m.get('product_id', '')} | 类型：{m.get('_type', m.get('type', ''))}")
-        else:
-            if all_materials:
-                st.markdown("#### 📁 本地文件")
-                ticons = {"文档": "📄", "PPT": "📊", "图片": "🖼️", "视频": "🎬", "表格": "📋", "其他": "📁"}
-                for mat in all_materials.values():
-                    icon = ticons.get(mat["type"], "📁")
-                    with st.container(border=True):
-                        st.markdown(f"{icon} **{mat['name']}**")
-                        st.caption(f"类型：{mat['type']} | 产品：{mat['product_id']} | 大小：{mat['size']/1024:.0f}KB")
-                        if mat.get("tags"):
-                            st.caption(f"标签：{' · '.join(mat['tags'])}")
-
-            if all_links:
-                st.markdown("#### 🔗 物料链接")
-                sicons = {"待抓取": "⏳", "已抓取": "📋", "已下载": "✅", "失效": "❌"}
-                for link in all_links.values():
-                    icon = sicons.get(link["status"], "❓")
-                    with st.container(border=True):
-                        st.markdown(f"{icon} **{link['title']}**")
-                        st.caption(f"状态：{link['status']} | 产品：{link.get('product_id', '')}")
-
-            if not all_materials and not all_links:
-                st.info("暂无任何素材")
-
-    # ═══ Tab 5: 品牌规则 ═══
-    with tab5:
+        # 品牌信息概览
         brand = config.get("brand", {})
-        st.markdown(f"**品牌名：** {brand.get('name', '')}")
-        st.markdown(f"**Slogan：** {brand.get('slogan', '')}")
-        st.markdown(f"**品牌话术倾向：** {'、'.join(brand.get('tone', []))}")
-        st.markdown("**❌ 禁区词：**")
-        for w in config.get("rules", {}).get("forbidden_words", []):
-            st.markdown(f"- {w}")
-        st.markdown("**✅ 必含词：**")
-        for w in config.get("rules", {}).get("required_words", []):
-            st.markdown(f"- {w}")
-        st.caption("修改配置需编辑 config.yaml 文件")
-
-    # ═══ Tab 2: 上传文件 ═══
-    with tab2:
-        st.markdown("### 上传营销物料文件")
-        st.caption("从 partner 网站下载后上传，或上传本地文件")
-        up_prod = st.selectbox("归属产品", list(prod_map.keys()), key="tab2_up_prod")
-        mat_name = st.text_input("物料名称", placeholder="例如：Pura70产品彩页_v3", key="tab2_up_name")
-        mat_tags = st.text_input("标签（逗号分隔）", placeholder="产品, 卖点, 高清图", key="tab2_up_tags")
-        uploaded_file = st.file_uploader(
-            "选择文件（PDF/PPTX/PNG/JPG/MP4 等）",
-            type=["pdf", "pptx", "ppt", "docx", "png", "jpg", "jpeg", "mp4"],
-            key="tab2_up_file"
-        )
-        if uploaded_file and mat_name:
-            pid = prod_map[up_prod]
-            save_dir = Path(__file__).parent / "data" / "materials" / pid
-            save_dir.mkdir(parents=True, exist_ok=True)
-            fp = save_dir / uploaded_file.name
-            with open(fp, "wb") as f:
-                f.write(uploaded_file.getbuffer())
-            tags = [t.strip() for t in mat_tags.split(",") if t.strip()]
-            add_material(str(fp), pid, mat_name, tags)
-            st.success(f"✅ 物料「{mat_name}」上传成功！")
-            st.balloons()
-
-    # ═══ Tab 3: 全部素材 ═══
-    with tab3:
-        st.markdown("### 全部知识库素材")
-        all_materials = get_materials()
-        all_links = get_links()
-        total = len(all_materials) + len(all_links)
-        st.caption(f"共 {total} 项素材（{len(all_links)} 链接 + {len(all_materials)} 文件）")
-
-        if all_materials:
-            st.markdown("#### 📁 本地文件")
-            ticons = {"文档": "📄", "PPT": "📊", "图片": "🖼️",
-                      "视频": "🎬", "表格": "📋", "其他": "📁"}
-            for mat in all_materials.values():
-                icon = ticons.get(mat["type"], "📁")
-                with st.container(border=True):
-                    st.markdown(f"{icon} **{mat['name']}**")
-                    st.caption(f"类型：{mat['type']} | 产品：{mat['product_id']} | 大小：{mat['size']/1024:.0f}KB")
-                    if mat.get("tags"):
-                        st.caption(f"标签：{' · '.join(mat['tags'])}")
-
-        if all_links:
-            st.markdown("#### 🔗 物料链接")
-            sicons = {"待抓取": "⏳", "已抓取": "📋", "已下载": "✅", "失效": "❌"}
-            for link in all_links.values():
-                icon = sicons.get(link["status"], "❓")
-                with st.container(border=True):
-                    st.markdown(f"{icon} **{link['title']}**")
-                    st.caption(f"状态：{link['status']} | 产品：{link.get('product_id', '')}")
-
-        if not all_materials and not all_links:
-            st.info("暂无任何素材，请先添加链接或上传文件")
-
-    # ═══ Tab 4: 品牌规则 ═══
-    with tab4:
-        brand = config.get("brand", {})
-        st.markdown(f"**品牌名：** {brand.get('name', '')}")
-        st.markdown(f"**Slogan：** {brand.get('slogan', '')}")
-        st.markdown(f"**品牌话术倾向：** {'、'.join(brand.get('tone', []))}")
-        st.markdown("**❌ 禁区词：**")
-        for w in config.get("rules", {}).get("forbidden_words", []):
-            st.markdown(f"- {w}")
-        st.markdown("**✅ 必含词：**")
-        for w in config.get("rules", {}).get("required_words", []):
-            st.markdown(f"- {w}")
-        st.caption("修改配置需编辑 config.yaml 文件")
-
+        st.markdown("#### ℹ️ 品牌信息")
+        st.markdown(f"- **品牌名：** {brand.get('name', '')}")
+        st.markdown(f"- **Slogan：** {brand.get('slogan', '')}")
+        tone_str = "、".join(brand.get("tone", []))
+        if tone_str:
+            st.markdown(f"- **语气风格：** {tone_str}")
+        st.caption("修改品牌信息需编辑 config.yaml 文件")
 
 # ═══════════════════════════════════════════════════════════════
 # 侧边栏 + 页面路由
