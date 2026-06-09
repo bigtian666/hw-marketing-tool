@@ -171,10 +171,11 @@ def render_partner_page(product, config):
         st.warning("请至少选择一种输出形式")
         return
 
-    # 知识库素材预览
+    # 知识库素材预览 — 用产品关键词搜索，伙伴能看到有物料
     st.markdown("### 📎 参考素材（系统自动匹配）")
+    # 直接用产品名搜索，保证能匹配标题中包含 DF10/ekitEngine 的物料
     matched_materials = unified_search(
-        current_direction.get("name", ""), product.get("id")
+        product.get("name", ""), product.get("id")
     )
     if matched_materials:
         type_icons = {"文档": "📄", "PPT": "📊", "图片": "🖼️",
@@ -186,7 +187,7 @@ def render_partner_page(product, config):
                 icon = type_icons.get(mat["type"], "📁")
                 st.caption(f"{icon} {mat['name']} ({mat['type']})")
     else:
-        st.caption("ℹ️ 当前产品暂无素材入库，请联系管理员上传物料")
+        st.caption("ℹ️ 暂未匹配到素材，但仍可提交创意生成内容，大模型会基于产品知识生成")
 
     # 生成按钮
     st.markdown("---")
