@@ -94,6 +94,34 @@ def render_partner_page(product, config):
     st.markdown(f"### 🎬 创作伙伴 — {product['name']}")
     st.caption("像聊天一样描述你的想法，AI 自动生成营销内容并支持反复打磨 ✨")
 
+    # ─── 建议框（直接提交管理端） ───
+    with st.expander("💬 给管理端提建议（可选）"):
+        st.caption("你的建议会直接发送给管理端，帮助平台优化")
+        suggestion = st.text_area(
+            "输入建议内容",
+            placeholder="例如：希望增加更多产品参考素材 / 建议优化某个方向的生成效果…",
+            key="suggestion_input",
+            label_visibility="collapsed",
+        )
+        if st.button("📨 提交建议", type="primary", use_container_width=True, key="submit_suggestion"):
+            if suggestion.strip():
+                from modules.db import submit_content
+                submit_content(
+                    product_id=product.get("id", ""),
+                    product_name=product.get("name", ""),
+                    partner="伙伴建议",
+                    idea=suggestion.strip(),
+                    direction_id="suggestion",
+                    direction_name="💬 伙伴建议",
+                    copy="",
+                    status="pending",
+                )
+                st.success("✅ 建议已提交给管理端，感谢你的反馈！")
+                st.balloons()
+                st.rerun()
+            else:
+                st.warning("请输入建议内容")
+
     # ─── 上传区域（可折叠） ───
     with st.expander("📎 上传参考素材（可选）"):
         col_logo, col_creative, col_style = st.columns(3)
@@ -182,6 +210,7 @@ def render_partner_page(product, config):
             st.info("💡 在下方输入你的创意想法，比如：\n\n"
                     "> 「我想突出 DF10 的防偷拍检测功能，用'出差住酒店安全检测'这个场景」\n\n"
                     "AI 会自动根据你选择的营销方向和输出形式生成内容。")
+
         else:
             for msg in st.session_state.chat_messages:
                 with st.chat_message(msg["role"]):
@@ -189,6 +218,7 @@ def render_partner_page(product, config):
                         st.markdown(msg["content"])
                     else:
                         result = msg.get("result", {})
+                        # 文案始终显示（所有模式都生成）
                         if result.get("copy"):
                             st.markdown("**📝 朋友圈文案**")
                             st.markdown(f"""<div style="background:#f0f8ff;padding:16px;border-radius:10px;border:1px solid #b0d4f1;"><pre style="white-space:pre-wrap;font-family:inherit;margin:0;">{result['copy']}</pre></div>""", unsafe_allow_html=True)
@@ -239,22 +269,15 @@ def render_partner_page(product, config):
     st.markdown("---")
     bottom_col1, bottom_col2, bottom_col3 = st.columns([3, 1, 1])
 
-    with bottom_col1:
-        user_input = st.text_input(
-            "💬 描述你的创意",
-            placeholder="例如：突出防偷拍检测，酒店出差场景…",
-            label_visibility="collapsed",
-            key="chat_input",
-            value=st.session_state.get("_revise_idea", ""),
-        )
+    # ─── 方向选择 + 一键生成提示词按钮 ───
+    dir_options = {d["name"]: {**d} for d in directions}
+    dir_names = list(dir_options.keys())
 
-    with bottom_col2:
-        # 方向下拉（含 prompt_hint 作为提示）
-        dir_options = {d["name"]: {**d} for d in directions}
-        dir_names = list(dir_options.keys())
+    # 在方向选择右侧放一个按钮
+    dir_col1, dir_col2 = st.columns([3, 1])
+    with dir_col1:
         sel_dir_name = st.selectbox("方向", dir_names, index=0, label_visibility="collapsed", key="chat_dir")
         current_direction = dir_options[sel_dir_name]
-        # 如果有 prompt_hint 则显示在下方
         hint = current_direction.get("prompt_hint", "")
         if sel_dir_name == "其他":
             custom_hint = st.text_input("自定义方向描述", placeholder="例如：新品发布会倒计时预热", key="custom_dir_hint")
@@ -268,6 +291,46 @@ def render_partner_page(product, config):
         elif hint:
             st.caption(f"💡 {hint}")
 
+    with dir_col2:
+        st.caption("&nbsp;")  # 对齐
+        if st.button("✨ 一键生成提示词", use_container_width=True, key="gen_prompt"):
+            # 用当前方向和 hint 生成提示词填入输入框
+            hint_text = current_direction.get("prompt_hint", "")
+            dir_name = sel_dir_name
+            if sel_dir_name == "其他":
+                custom = st.session_state.get("custom_dir_hint", "")
+                hint_text = custom or dir_name
+                if custom:
+                    dir_name = f"其他 - {custom}"
+            gen_text = f"【方向：{dir_name}】"
+            if hint_text:
+                gen_text += f" {hint_text}"
+            gen_text += " 请根据这一方向生成对应的营销内容。"
+            st.session_state.chat_input_override = gen_text
+            st.rerun()
+
+    # 读取可能被一键生成的提示词覆盖
+    if "chat_input_override" in st.session_state and st.session_state.chat_input_override:
+        input_default = st.session_state.chat_input_override
+    else:
+        input_default = st.session_state.get("_revise_idea", "")
+
+    with bottom_col1:
+        user_input = st.text_input(
+            "💬 描述你的创意",
+            placeholder="例如：突出防偷拍检测，酒店出差场景…",
+            label_visibility="collapsed",
+            key="chat_input",
+            value=input_default,
+        )
+
+    # 覆盖使用后清除
+    if "chat_input_override" in st.session_state and not user_input:
+        pass
+
+    with bottom_col2:
+        pass  # 方向已在上方
+
     with bottom_col3:
         # 输出形式：单选，文案始终附带
         sel_type = st.radio(
@@ -278,16 +341,22 @@ def render_partner_page(product, config):
         )
 
     # 发送按钮
-    send_clicked = st.button("🚀 发送", type="primary", use_container_width=True)
+    send_col1, send_col2 = st.columns([3, 1])
+    with send_col1:
+        pass
+    with send_col2:
+        send_clicked = st.button("🚀 发送", type="primary", use_container_width=True)
 
     # ─── 处理发送 ───
     if send_clicked and user_input.strip():
+        # 清除覆盖
+        st.session_state.chat_input_override = ""
         # 清除输入框中的修改草稿
         st.session_state._revise_idea = ""
 
         # 构建上下文（最近 N 轮的历史）
         history_context = ""
-        recent = st.session_state.chat_messages[-6:]  # 最近3轮对话
+        recent = st.session_state.chat_messages[-6:]
         for m in recent:
             role = "用户" if m["role"] == "user" else "AI"
             if m["role"] == "user":
@@ -317,7 +386,7 @@ def render_partner_page(product, config):
         with st.spinner("🤔 AI 正在思考中..."):
             result = {}
             try:
-                # 无论选什么输出形式，都生成文案
+                # 文案始终生成（所有模式）
                 result["copy"] = generate_copy(
                     product, current_direction,
                     user_input.strip(), materials_context, history_context,
@@ -330,7 +399,6 @@ def render_partner_page(product, config):
                 if sel_type == "短视频":
                     result["video_copy"] = result.get("copy", "")
                 if sel_type == "文案+配图":
-                    # 收集参考素材描述
                     logo_path = st.session_state.get("logo_file")
                     creative_refs = st.session_state.get("creative_ref_files", [])
                     style_refs = st.session_state.get("style_ref_files", [])
@@ -372,7 +440,9 @@ def render_partner_page(product, config):
 
         st.rerun()
 
-    # ─── 提交辅助函数（已内联到按钮中） ───
+    # 清除一键生成的覆盖（防止 sticky）
+    if "chat_input_override" in st.session_state and st.session_state.chat_input_override:
+        st.session_state.chat_input_override = ""
 
 # ═══════════════════════════════════════════════════════════════
 # 审核端页面

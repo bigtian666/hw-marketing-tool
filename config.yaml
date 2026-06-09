@@ -64,23 +64,9 @@ products:
     - 文案+配图
     - 短视频
     - 脚本
-  - id: industry_insight
-    name: 行业洞察
-    prompt_hint: 结合行业趋势和痛点，提供前瞻性观点和解决方案
-    output_types:
-    - 文案+配图
-    - 短视频
-    - 脚本
   - id: holiday
     name: 节日营销
     prompt_hint: 结合节日/热点事件，进行情感化营销传播
-    output_types:
-    - 文案+配图
-    - 短视频
-    - 脚本
-  - id: partner_recruit
-    name: 伙伴招募
-    prompt_hint: 面向潜在合作伙伴展示合作价值和政策吸引力
     output_types:
     - 文案+配图
     - 短视频
