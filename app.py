@@ -171,23 +171,23 @@ def render_partner_page(product, config):
         st.warning("请至少选择一种输出形式")
         return
 
-    # 知识库素材预览 — 用产品关键词搜索，伙伴能看到有物料
+    # 知识库素材预览 — 当前产品的所有物料，1:1匹配
     st.markdown("### 📎 参考素材（系统自动匹配）")
-    # 直接用产品名搜索，保证能匹配标题中包含 DF10/ekitEngine 的物料
-    matched_materials = unified_search(
-        product.get("name", ""), product.get("id")
-    )
-    if matched_materials:
+    prod_links = get_links(product.get("id"))
+    prod_materials = get_materials(product.get("id"))
+    if prod_links:
+        for lid, link in prod_links.items():
+            status_icon = {"待抓取": "⏳", "已抓取": "📋", "已下载": "✅", "失效": "❌"}
+            icon = status_icon.get(link.get("status", ""), "🔗")
+            st.caption(f"{icon} {link.get('title', '未命名')}")
+    elif prod_materials:
         type_icons = {"文档": "📄", "PPT": "📊", "图片": "🖼️",
                       "视频": "🎬", "表格": "📋", "其他": "📁"}
-        for mat in matched_materials[:5]:
-            if mat.get("_type") == "link":
-                st.caption(f"🔗 {mat.get('title', '未命名')}  (链接)")
-            else:
-                icon = type_icons.get(mat["type"], "📁")
-                st.caption(f"{icon} {mat['name']} ({mat['type']})")
+        for mat in prod_materials:
+            icon = type_icons.get(mat.get("type", ""), "📁")
+            st.caption(f"{icon} {mat.get('name', '未命名')}")
     else:
-        st.caption("ℹ️ 暂未匹配到素材，但仍可提交创意生成内容，大模型会基于产品知识生成")
+        st.caption("ℹ️ 暂无参考素材，仍可提交创意让大模型帮你生成")
 
     # 生成按钮
     st.markdown("---")
