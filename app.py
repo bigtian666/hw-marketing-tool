@@ -715,66 +715,67 @@ def render_management_page(config):
     # ══════════════════════════════════════════════════════════
     with tab2:
         st.markdown("### 品牌内容规则（全局生效）")
-        st.caption("这里设置的规则对所有产品和方案统一生效，不区分产品")
+        st.caption("手动输入品牌规则，每条一行，AI 生成内容时会自动遵守")
 
+        # 读取已有规则（展示为用户可编辑的文本）
         forbidden = config.get("rules", {}).get("forbidden_words", [])
         required = config.get("rules", {}).get("required_words", [])
         brand_phrases = config.get("rules", {}).get("brand_phrases", [])
 
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("**❌ 禁止使用词**")
-            for w in forbidden:
-                st.markdown(f"- ~~{w}~~ (禁用)")
-            if not forbidden:
-                st.caption("暂无")
+        all_rules = []
+        for w in forbidden:
+            all_rules.append(f"❌ 禁用: {w}")
+        for w in required:
+            all_rules.append(f"✅ 必含: {w}")
+        for w in brand_phrases:
+            all_rules.append(f"📢 话术: {w}")
 
-        with col2:
-            st.markdown("**✅ 必须包含词**")
-            for w in required:
-                st.markdown(f"- **{w}** (必含)")
-            if not required:
-                st.caption("暂无")
+        rules_text = st.text_area(
+            "品牌规则（每行一条）",
+            value="\n".join(all_rules),
+            placeholder="""❌ 禁用: 最
+❌ 禁用: 第一
+✅ 必含: 华为坤灵
+📢 话术: 华为坤灵 %s
+这样每行一条，用前缀区分类型""",
+            height=250,
+            key="brand_rules_text"
+        )
 
-        st.divider()
-        st.markdown("#### ➕ 添加新规则")
-        rule_type = st.selectbox("规则类型", ["禁止词（禁用）", "必含词（必须出现）", "品牌话术"], key="gbl_rule_type")
-        rule_text = st.text_input("规则内容", placeholder="例如：最、第一、行业领先…", key="gbl_rule_text")
+        if st.button("💾 保存规则", type="primary", use_container_width=True, key="save_rules"):
+            import yaml
+            cfg_path = Path(__file__).parent / "config.yaml"
+            with open(cfg_path, "r", encoding="utf-8") as f:
+                cfg = yaml.safe_load(f)
 
-        if st.button("✅ 添加规则", type="primary", use_container_width=True, key="gbl_add_rule"):
-            if rule_text.strip():
-                new_word = rule_text.strip()
-                import yaml
-                cfg_path = Path(__file__).parent / "config.yaml"
-                with open(cfg_path, "r", encoding="utf-8") as f:
-                    cfg = yaml.safe_load(f)
+            new_forbidden = []
+            new_required = []
+            new_phrases = []
+            for line in rules_text.strip().splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                if "❌ 禁用:" in line or "禁用:" in line:
+                    word = line.split(":", 1)[1].strip()
+                    if word:
+                        new_forbidden.append(word)
+                elif "✅ 必含:" in line or "必含:" in line:
+                    word = line.split(":", 1)[1].strip()
+                    if word:
+                        new_required.append(word)
+                elif "📢 话术:" in line or "话术:" in line:
+                    phrase = line.split(":", 1)[1].strip()
+                    if phrase:
+                        new_phrases.append(phrase)
 
-                if "禁止" in rule_type:
-                    if new_word not in cfg["rules"]["forbidden_words"]:
-                        cfg["rules"]["forbidden_words"].append(new_word)
-                elif "必含" in rule_type:
-                    if new_word not in cfg["rules"]["required_words"]:
-                        cfg["rules"]["required_words"].append(new_word)
-                else:
-                    if new_word not in cfg["rules"]["brand_phrases"]:
-                        cfg["rules"]["brand_phrases"].append(new_word)
+            cfg["rules"]["forbidden_words"] = new_forbidden
+            cfg["rules"]["required_words"] = new_required
+            cfg["rules"]["brand_phrases"] = new_phrases
 
-                with open(cfg_path, "w", encoding="utf-8") as f:
-                    yaml.dump(cfg, f, allow_unicode=True, indent=2, sort_keys=False)
-                st.success(f"✅ 已添加「{new_word}」")
-                st.rerun()
-            else:
-                st.warning("请输入规则内容")
-
-        st.divider()
-        brand = config.get("brand", {})
-        st.markdown("#### ℹ️ 品牌信息")
-        st.markdown(f"- **品牌名：** {brand.get('name', '')}")
-        st.markdown(f"- **Slogan：** {brand.get('slogan', '')}")
-        tone_str = "、".join(brand.get("tone", []))
-        if tone_str:
-            st.markdown(f"- **语气风格：** {tone_str}")
-        st.caption("修改品牌信息需编辑 config.yaml 文件")
+            with open(cfg_path, "w", encoding="utf-8") as f:
+                yaml.dump(cfg, f, allow_unicode=True, indent=2, sort_keys=False)
+            st.success("✅ 品牌规则已保存")
+            st.rerun()
 
 
 def _remove_by_tag(product_id, tag_keyword):
