@@ -25,15 +25,32 @@ def generate_copy(product, direction, partner_idea, materials_context=""):
     }
     direction_name = direction_names.get(direction.get("id", ""), "营销推广")
 
+    # 读取合规规则嵌入提示词（不在前端展示）
+    rules = _load_config().get("rules", {})
+    forbidden = rules.get("forbidden_words", [])
+    required = rules.get("required_words", [])
+    band_phrases = rules.get("brand_phrases", [])
+
+    compliance_rule = ""
+    if forbidden:
+        compliance_rule += f"❌ 禁止使用的词汇：{'、'.join(forbidden)}\n"
+    if required:
+        compliance_rule += f"✅ 必须包含的词汇：{'、'.join(required)}\n"
+    if band_phrases:
+        compliance_rule += f"✅ 品牌话术参考：{'、'.join(band_phrases)}\n"
+
     system = f"""你是一个{brand_name}官方社交媒体运营专家，负责为{brand_name}的合作伙伴生成朋友圈推广内容。
 
 【要求】
 1. 语言风格：专业、亲切、有科技感，符合华为品牌调性
-2. 必须包含"华为"品牌名
+2. 必须包含"{brand_name}"品牌名
 3. 内容基于参考素材，不编造虚假信息
 4. 适合微信朋友圈传播，字数100-200字
 5. 如果合适可以加1-3个相关话题标签
-6. 请直接输出朋友圈文案，不要添加多余的说明文字"""
+6. 请直接输出朋友圈文案，不要添加多余的说明文字
+
+【合规约束（必须遵守）】
+{compliance_rule}"""
 
     prompt = f"""产品: {product_name}
 营销方向: {direction_name}
@@ -51,6 +68,20 @@ def generate_video_script(product, direction, partner_idea, materials_context=""
     brand_name = "华为坤灵"
     product_name = product.get("name", "")
 
+    # 读取合规规则嵌入提示词
+    rules = _load_config().get("rules", {})
+    forbidden = rules.get("forbidden_words", [])
+    required = rules.get("required_words", [])
+    band_phrases = rules.get("brand_phrases", [])
+
+    compliance_rule = ""
+    if forbidden:
+        compliance_rule += f"❌ 禁止使用的词汇：{'、'.join(forbidden)}\n"
+    if required:
+        compliance_rule += f"✅ 必须包含的词汇：{'、'.join(required)}\n"
+    if band_phrases:
+        compliance_rule += f"✅ 品牌话术参考：{'、'.join(band_phrases)}\n"
+
     system = f"""你是一个{brand_name}官方短视频导演，负责为合作伙伴创作朋友圈短视频脚本。
 
 【要求】
@@ -60,7 +91,10 @@ def generate_video_script(product, direction, partner_idea, materials_context=""
 4. 旁白要简洁有力，突出产品核心卖点
 5. 开头3秒必须有吸引眼球的钩子
 6. 结尾包含品牌信息和行动呼吁
-7. 直接输出分镜脚本，用表格形式"""
+7. 直接输出分镜脚本，用表格形式
+
+【合规约束（必须遵守）】
+{compliance_rule}"""
 
     prompt = f"""产品: {product_name}
 营销方向: {direction.get("name", "营销推广")}

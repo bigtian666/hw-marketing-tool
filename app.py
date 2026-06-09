@@ -20,7 +20,7 @@ from modules.knowledge_base import (
 )
 from modules.content_gen import (
     generate_copy, generate_video_script, generate_images,
-    generate_video, check_compliance
+    generate_video
 )
 from modules.db import (
     submit_content, save_video, get_pending_contents, get_approved_contents,
@@ -49,7 +49,7 @@ DEFAULT_STATE = {
     "materials_loaded": False,
     "_sel_dir": None,
     "_reviewing": None,
-    "compliance_issues": [],
+
 }
 for key, val in DEFAULT_STATE.items():
     if key not in st.session_state:
@@ -229,26 +229,16 @@ def render_partner_page(product, config):
                 result["video_path"] = generate_video(
                     product, partner_idea, result.get("images", []))
 
-            all_text = result.get("copy", "") + " " + result.get("script", "")
             st.session_state.generated_content = result
-            st.session_state.compliance_issues = check_compliance(all_text, product)
             st.session_state.submitted = False
             st.rerun()
 
     # ─── 显示生成结果 ─────────────────────────────────
     if st.session_state.generated_content:
         result = st.session_state.generated_content
-        issues = st.session_state.get("compliance_issues", [])
 
         st.markdown("---")
         st.markdown("## ✅ 生成结果预览")
-
-        if issues:
-            st.error("⚠️ 合规检查发现问题，请修正后重新生成：")
-            for iss in issues:
-                st.warning(f"- {iss}")
-        else:
-            st.success("✅ 内容已通过合规检查")
 
         if result.get("copy"):
             st.markdown("### 📝 朋友圈文案")
@@ -302,11 +292,10 @@ def render_partner_page(product, config):
         st.markdown("调整上面的创意想法，重新生成即可。可以反复迭代直到满意 ✨")
 
         # 提交审核（使用数据库）
-        if not issues:
-            st.markdown("---")
-            col_a, col_b = st.columns([1, 1])
-            with col_a:
-                if not st.session_state.submitted:
+        st.markdown("---")
+        col_a, col_b = st.columns([1, 1])
+        with col_a:
+            if not st.session_state.submitted:
                     if st.button("✋ 满意了，提交审核", type="primary",
                                  use_container_width=True):
                         # 写入数据库
@@ -341,8 +330,6 @@ def render_partner_page(product, config):
                 else:
                     st.success("🎉 **已提交审核！** 等待审核通过后即可使用。")
                     st.balloons()
-        else:
-            st.warning("⚠️ 请先解决合规问题后再提交审核")
 
     # ═══ 显示伙伴的历史提交记录与审核结果 ═══
     st.markdown("---")
