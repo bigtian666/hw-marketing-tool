@@ -244,7 +244,10 @@ def render_partner_page(product, config):
                 result["image_prompts"] = prompts
             # 短视频（跳过，无视频渲染引擎）
             if "短视频" in selected_types:
-                result["video_path"] = None
+                # 视频生成由可灵AI异步完成（调用前需开通服务）
+                video_prompt = f"""{partner_idea}
+产品: {product.get('name', '')} 营销推广视频，竖屏"""
+                result["video_path"] = generate_video(product, partner_idea, prompt=video_prompt)
 
             st.session_state.generated_content = result
             st.session_state.submitted = False

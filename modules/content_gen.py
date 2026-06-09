@@ -4,12 +4,21 @@
 
 import json
 import os
+import requests
 import subprocess
 import time
 from pathlib import Path
 
 # 导入知识库
 from modules.knowledge_base import get_relevant_materials, get_materials
+
+
+# ── DashScope（阿里云百炼）API 配置 ──
+DASHSCOPE_API_KEY = os.environ.get("DASHSCOPE_API_KEY", "")
+if not DASHSCOPE_API_KEY:
+    key_path = Path(__file__).parent.parent / ".dashscope_key"
+    if key_path.exists():
+        DASHSCOPE_API_KEY = key_path.read_text().strip()
 
 
 def generate_copy(product, direction, partner_idea, materials_context=""):
@@ -108,14 +117,14 @@ def generate_video_script(product, direction, partner_idea, materials_context=""
 
 
 def generate_images(product, partner_idea, copy_text, count=1):
-    """生成配图 - 调用 Seedream 图像生成"""
+    """生成配图 - 调用通义万相 wan2.6-t2i"""
     output_dir = Path(__file__).parent.parent / "data" / "generated" / "images"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     product_name = product.get("name", "")
     timestamp = int(time.time())
 
-    # 先通过 LLM 生成图片描述
+    # 先通过 LLM 生成图片描述提示词
     system = "你是一个专业的AI图像生成提示词工程师。根据产品信息和营销意图，生成适合AI绘图的提示词。只输出JSON数组，不要其他内容。"
 
     prompt = f"""根据以下信息，生成{count}条用于AI图像生成的提示词（prompt），每个prompt描述一张适合朋友圈营销的配图。
@@ -138,37 +147,31 @@ def generate_images(product, partner_idea, copy_text, count=1):
 
     generated = []
     for i, img_prompt in enumerate(image_prompts[:count]):
-        img_dir = output_dir / f"gen_{timestamp}_{i}"
-        
-        # 调用 Seedream 图片生成能力
-        result = _call_seedream(img_prompt, img_dir)
-        
+        result = _call_wanx_image(img_prompt, output_dir, f"wanx_{timestamp}_{i}")
         if result and Path(result).exists():
             generated.append(result)
         else:
-            # 如果 Seedream 不可用，生成占位图描述
             generated.append(None)
 
     return generated, image_prompts
 
 
-def generate_video(product, partner_idea, images):
-    """生成短视频 - 调用一键成片能力"""
-    # 如果有生成的图片，就用图片合成视频
-    # 如果没有图片但有创意描述，先生成图片再合成
-    
+def generate_video(product, partner_idea, images=None, prompt=None):
+    """生成短视频 - 调用可灵AI kling-v3-video-generation"""
     output_dir = Path(__file__).parent.parent / "data" / "generated" / "videos"
     output_dir.mkdir(parents=True, exist_ok=True)
     timestamp = int(time.time())
     video_path = output_dir / f"video_{timestamp}.mp4"
 
-    # 调用 xiaoyi-vlog-gen 的一键成片脚本
-    if images and any(img for img in images):
-        valid_images = [img for img in images if img and Path(img).exists()]
-        if valid_images:
-            _call_vlog_gen(valid_images, str(video_path))
+    # 构造可灵视频提示词
+    if not prompt:
+        product_name = product.get("name", "")
+        prompt = f"{product_name}产品展示场景，高质量营销视频"
 
-    return str(video_path) if video_path.exists() else None
+    result = _call_kling_video(prompt, str(video_path))
+    if result and Path(result).exists():
+        return result
+    return None
 
 
 def check_compliance(text, product):
@@ -207,47 +210,156 @@ def _call_llm(prompt, system_prompt="", temperature=0.7, max_tokens=2000):
     )
 
 
-def _call_seedream(prompt, output_dir):
-    """调用 Seedream 图片生成"""
-    print(f"[图片生成] 提示词: {prompt[:60]}...")
-    seedream_script = os.path.expanduser(
-        "~/.openclaw/workspace/skills/seedream-image_gen/scripts/generate_seedream.py"
-    )
-    
-    if Path(seedream_script).exists():
-        try:
-            result = subprocess.run(
-                ["python3", seedream_script, "--prompt", prompt, "--output", str(output_dir)],
-                capture_output=True, text=True, timeout=180
-            )
-            if result.returncode == 0:
-                # Seedream 会保存到 output_dir/ 目录下，找最新生成的图片
-                if output_dir.exists():
-                    files = sorted(output_dir.glob("*generated*.jpg")) + sorted(output_dir.glob("*.jpg"))
-                    files = [f for f in files if f.is_file()]
-                    if files:
-                        return str(files[-1])
-        except Exception as e:
-            print(f"[Seedream Error] {e}")
-    
+def _call_wanx_image(prompt, output_dir, filename_base):
+    """
+    调用通义万相 wan2.6-t2i 文生图（同步）
+    返回本地图片路径，失败返回 None
+    """
+    if not DASHSCOPE_API_KEY:
+        print("[通义万相] 未配置 DASHSCOPE_API_KEY")
+        return None
+
+    print(f"[通义万相] 生成中: {prompt[:60]}...")
+
+    headers = {
+        "Authorization": f"Bearer {DASHSCOPE_API_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    body = {
+        "model": "wan2.6-t2i",
+        "input": {
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [{"text": prompt}]
+                }
+            ]
+        },
+        "parameters": {
+            "size": "1024*1024",
+            "n": 1
+        }
+    }
+
+    try:
+        resp = requests.post(
+            "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
+            headers=headers,
+            json=body,
+            timeout=60
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            choices = data.get("output", {}).get("choices", [])
+            if choices:
+                for item in choices[0].get("message", {}).get("content", []):
+                    if "image" in item:
+                        url = item["image"]
+                        img_resp = requests.get(url, timeout=30)
+                        ext = "png"
+                        local_path = output_dir / f"{filename_base}.{ext}"
+                        output_dir.mkdir(parents=True, exist_ok=True)
+                        with open(local_path, "wb") as f:
+                            f.write(img_resp.content)
+                        print(f"[通义万相] ✅ 保存: {local_path} ({len(img_resp.content)} bytes)")
+                        return str(local_path)
+        else:
+            print(f"[通义万相] ❌ {resp.status_code}: {resp.text[:200]}")
+    except Exception as e:
+        print(f"[通义万相] ❌ 异常: {type(e).__name__}: {e}")
+
     return None
 
 
-def _call_vlog_gen(images, output_path):
-    """调用一键成片生成视频"""
-    vlog_scripts = os.path.expanduser(
-        "~/.openclaw/workspace/skills/xiaoyi-vlog-gen/scripts"
-    )
-    check_script = os.path.join(vlog_scripts, "check-init.sh")
-    
-    if Path(check_script).exists():
-        try:
-            subprocess.run(["bash", check_script], capture_output=True, timeout=30)
-        except:
-            pass
+def _call_kling_video(prompt, output_path):
+    """
+    调用可灵AI kling-v3-video-generation 文生视频（异步）
+    返回本地视频路径，失败返回 None
+    """
+    if not DASHSCOPE_API_KEY:
+        print("[可灵AI] 未配置 DASHSCOPE_API_KEY")
+        return None
 
-    # 暂以占位形式返回
-    print(f"[视频生成] 输入图片: {len(images)}张, 输出: {output_path}")
+    print(f"[可灵AI] 生成中: {prompt[:60]}...")
+
+    headers = {
+        "Authorization": f"Bearer {DASHSCOPE_API_KEY}",
+        "Content-Type": "application/json",
+        "X-DashScope-Async": "enable",
+    }
+
+    body = {
+        "model": "kling/kling-v3-video-generation",
+        "input": {"prompt": prompt},
+        "parameters": {
+            "duration": 5,
+            "size": "720*1280",
+        }
+    }
+
+    try:
+        # 1. 提交任务
+        resp = requests.post(
+            "https://dashscope.aliyuncs.com/api/v1/services/aigc/video-generation/video-synthesis",
+            headers=headers,
+            json=body,
+            timeout=30
+        )
+        if resp.status_code != 200:
+            print(f"[可灵AI] ❌ 提交失败: {resp.text[:200]}")
+            return None
+
+        task_id = resp.json().get("output", {}).get("task_id", "")
+        if not task_id:
+            print("[可灵AI] ❌ 未获取到task_id")
+            return None
+
+        print(f"[可灵AI] ⏳ 任务已提交: {task_id}")
+
+        # 2. 轮询结果（最多3分钟）
+        poll_headers = {"Authorization": f"Bearer {DASHSCOPE_API_KEY}"}
+        for _ in range(36):  # 36 * 5s = 180s
+            time.sleep(5)
+            query = requests.get(
+                f"https://dashscope.aliyuncs.com/api/v1/tasks/{task_id}",
+                headers=poll_headers,
+                timeout=10
+            )
+            qdata = query.json()
+            status = qdata.get("output", {}).get("task_status", "")
+
+            if status == "SUCCEEDED":
+                # 可灵返回的是 video 字段（数组）
+                videos = qdata.get("output", {}).get("video", [])
+                if not videos:
+                    videos = qdata.get("output", {}).get("results", [])
+                if videos:
+                    video_url = None
+                    if isinstance(videos, list):
+                        video_url = videos[0].get("url", "") or videos[0].get("url", "")
+                    elif isinstance(videos, dict):
+                        video_url = videos.get("url", "")
+                    else:
+                        video_url = str(videos)
+
+                    if video_url and video_url.startswith("http"):
+                        vid_resp = requests.get(video_url, timeout=60)
+                        with open(output_path, "wb") as f:
+                            f.write(vid_resp.content)
+                        print(f"[可灵AI] ✅ 保存: {output_path} ({len(vid_resp.content)} bytes)")
+                        return output_path
+            elif status == "FAILED":
+                err_msg = qdata.get("output", {}).get("message", "未知错误")
+                print(f"[可灵AI] ❌ 生成失败: {err_msg}")
+                return None
+            else:
+                print(f"[可灵AI] ⏳ 状态: {status}")
+
+        print("[可灵AI] ⏰ 超时")
+    except Exception as e:
+        print(f"[可灵AI] ❌ 异常: {type(e).__name__}: {e}")
+
     return None
 
 

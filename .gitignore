@@ -4,4 +4,5 @@ __pycache__/
 .DS_Store
 baas-config.json
 .api_key
+.dashscope_key
 *.db
