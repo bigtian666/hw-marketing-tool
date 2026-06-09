@@ -11,3 +11,9 @@ from modules.content_gen import (
 )
 from modules.llm_api import call_llm
 from modules.partner_scraper import search_and_fetch_materials
+from modules.db import (
+    submit_content, save_video, get_pending_contents, get_approved_contents,
+    get_rejected_contents, get_all_contents, get_content_by_id,
+    approve_content, reject_content, get_videos_for_content,
+    get_downloadable_videos
+)
