@@ -64,6 +64,10 @@ DEFAULT_STATE = {
     "chat_messages": [],
     "_revise_idea": "",
     "_revise_result_id": None,
+    "logo_file": None,
+    "logo_file_name": "",
+    "creative_ref_files": [],
+    "style_ref_files": [],
 }
 for key, val in DEFAULT_STATE.items():
     if key not in st.session_state:
@@ -89,6 +93,86 @@ def render_partner_page(product, config):
     # ─── 顶栏：产品信息 ───
     st.markdown(f"### 🎬 创作伙伴 — {product['name']}")
     st.caption("像聊天一样描述你的想法，AI 自动生成营销内容并支持反复打磨 ✨")
+
+    # ─── 上传区域（可折叠） ───
+    with st.expander("📎 上传参考素材（可选）"):
+        col_logo, col_creative, col_style = st.columns(3)
+
+        # 1. Logo 上传
+        with col_logo:
+            st.markdown("**🏢 Logo（伙伴公司）**")
+            st.caption("上传后自动作为角标叠加到图片/视频")
+            uploaded_logo = st.file_uploader(
+                "选择 Logo 图片", type=["png", "jpg", "jpeg"],
+                key="logo_upload", label_visibility="collapsed"
+            )
+            if uploaded_logo:
+                logo_dir = Path(__file__).parent / "data" / "uploads" / "logos"
+                logo_dir.mkdir(parents=True, exist_ok=True)
+                logo_path = logo_dir / uploaded_logo.name
+                with open(logo_path, "wb") as f:
+                    f.write(uploaded_logo.getbuffer())
+                st.session_state.logo_file = str(logo_path)
+                st.session_state.logo_file_name = uploaded_logo.name
+                st.success(f"✅ Logo 已上传：{uploaded_logo.name}")
+            if st.session_state.get("logo_file"):
+                if st.button("🗑️ 清除 Logo", key="clear_logo", use_container_width=True):
+                    st.session_state.logo_file = None
+                    st.session_state.logo_file_name = ""
+                    st.rerun()
+
+        # 2. 创意参考上传
+        with col_creative:
+            st.markdown("**💡 创意参考**")
+            st.caption("AI 尽量参考这里的创意风格")
+            creative_files = st.file_uploader(
+                "上传参考图", type=["png", "jpg", "jpeg", "pdf", "pptx"],
+                accept_multiple_files=True,
+                key="creative_ref", label_visibility="collapsed"
+            )
+            if creative_files:
+                ref_dir = Path(__file__).parent / "data" / "uploads" / "creative_refs"
+                ref_dir.mkdir(parents=True, exist_ok=True)
+                paths = []
+                for f in creative_files:
+                    fp = ref_dir / f.name
+                    with open(fp, "wb") as out:
+                        out.write(f.getbuffer())
+                    paths.append(str(fp))
+                st.session_state.creative_ref_files = paths
+                st.success(f"✅ {len(paths)} 个参考文件已上传")
+
+        # 3. 风格参考上传
+        with col_style:
+            st.markdown("**🎨 风格参考**")
+            st.caption("AI 尽量参考这里的画面风格")
+            style_files = st.file_uploader(
+                "上传风格图", type=["png", "jpg", "jpeg"],
+                accept_multiple_files=True,
+                key="style_ref", label_visibility="collapsed"
+            )
+            if style_files:
+                style_dir = Path(__file__).parent / "data" / "uploads" / "style_refs"
+                style_dir.mkdir(parents=True, exist_ok=True)
+                paths = []
+                for f in style_files:
+                    fp = style_dir / f.name
+                    with open(fp, "wb") as out:
+                        out.write(f.getbuffer())
+                    paths.append(str(fp))
+                st.session_state.style_ref_files = paths
+                st.success(f"✅ {len(paths)} 个风格参考文件已上传")
+
+        # 显示当前已上传状态
+        if st.session_state.get("logo_file") or st.session_state.get("creative_ref_files") or st.session_state.get("style_ref_files"):
+            st.divider()
+            st.caption("📌 已上传素材：")
+            if st.session_state.get("logo_file"):
+                st.caption(f"  🏢 Logo: {st.session_state.logo_file_name}")
+            if st.session_state.get("creative_ref_files"):
+                st.caption(f"  💡 创意参考: {len(st.session_state.creative_ref_files)} 个文件")
+            if st.session_state.get("style_ref_files"):
+                st.caption(f"  🎨 风格参考: {len(st.session_state.style_ref_files)} 个文件")
 
     # ─── 显示对话历史（类似豆包 / ChatGPT） ───
     chat_container = st.container()
@@ -239,8 +323,25 @@ def render_partner_page(product, config):
                 elif "短视频" in sel_types:
                     result["video_copy"] = result.get("copy", "")
                 if "文案+配图" in sel_types:
+                    # 收集参考素材描述
+                    logo_path = st.session_state.get("logo_file")
+                    creative_refs = st.session_state.get("creative_ref_files", [])
+                    style_refs = st.session_state.get("style_ref_files", [])
+
+                    ref_context = ""
+                    if creative_refs:
+                        ref_context += f"\n【创意参考素材已提供，请参考其创意方向】共计{len(creative_refs)}个文件"
+                    if style_refs:
+                        ref_context += f"\n【风格参考素材已提供，请参考其画面风格】共计{len(style_refs)}个文件"
+                    if logo_path:
+                        ref_context += "\n【Logo已上传，生成后叠加角标】"
+
                     images, prompts = generate_images(
-                        product, user_input.strip(), result.get("copy", ""), count=1
+                        product, user_input.strip() + ref_context,
+                        result.get("copy", ""), count=1,
+                        logo_path=logo_path,
+                        creative_refs=creative_refs,
+                        style_refs=style_refs,
                     )
                     result["images"] = images
                     result["image_prompts"] = prompts

@@ -126,7 +126,7 @@ def generate_video_script(product, direction, partner_idea, materials_context=""
     return content
 
 
-def generate_images(product, partner_idea, copy_text, count=1):
+def generate_images(product, partner_idea, copy_text, count=1, logo_path=None, creative_refs=None, style_refs=None):
     """生成配图 - 调用通义万相 wan2.6-t2i"""
     output_dir = Path(__file__).parent.parent / "data" / "generated" / "images"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -135,13 +135,22 @@ def generate_images(product, partner_idea, copy_text, count=1):
     timestamp = int(time.time())
 
     # 先通过 LLM 生成图片描述提示词
+    # 构建参考素材上下文
+    ref_extra = ""
+    if creative_refs:
+        ref_extra += "\n【创意参考：已提供" + str(len(creative_refs)) + "个参考文件，请尽量参考其创意方向】"
+    if style_refs:
+        ref_extra += "\n【风格参考：已提供" + str(len(style_refs)) + "个风格文件，请尽量参考其画面风格和色调】"
+    if logo_path:
+        ref_extra += "\n【Logo已上传，生成后叠加角标】"
+
     system = "你是一个专业的AI图像生成提示词工程师。根据产品信息和营销意图，生成适合AI绘图的提示词。只输出JSON数组，不要其他内容。"
 
     prompt = f"""根据以下信息，生成{count}条用于AI图像生成的提示词（prompt），每个prompt描述一张适合朋友圈营销的配图。
 
 产品: {product_name}
 创意: {partner_idea}
-朋友圈文案: {copy_text[:200]}
+朋友圈文案: {copy_text[:200]}{ref_extra}
 
 要求：
 1. 风格可以是产品实拍感、场景氛围感、科技简约感
@@ -162,6 +171,30 @@ def generate_images(product, partner_idea, copy_text, count=1):
             generated.append(result)
         else:
             generated.append(None)
+
+
+    # Logo 叠加（如果有）
+    if logo_path and Path(str(logo_path)).exists():
+        try:
+            from PIL import Image, ImageDraw
+            logo_img = Image.open(str(logo_path))
+            # 等比缩放 Logo 宽度为图片宽度的 12%
+            for gi, gen_path in enumerate(generated):
+                if gen_path and Path(gen_path).exists():
+                    img = Image.open(gen_path)
+                    lw = int(img.width * 0.12)
+                    lh = int(logo_img.height * (lw / logo_img.width))
+                    logo_resized = logo_img.resize((lw, lh), Image.LANCZOS)
+                    # 右下角贴 Logo（留 20px 边距）
+                    pos = (img.width - lw - 20, img.height - lh - 20)
+                    if logo_resized.mode == "RGBA":
+                        img.paste(logo_resized, pos, logo_resized)
+                    else:
+                        img.paste(logo_resized, pos)
+                    img.save(gen_path)
+                    print(f"[Logo] ✅ 叠加到 {gen_path}")
+        except Exception as e:
+            print(f"[Logo] ❌ 叠加失败: {e}")
 
     return generated, image_prompts
 
