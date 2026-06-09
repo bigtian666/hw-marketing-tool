@@ -223,27 +223,28 @@ def render_partner_page(product, config):
             has_copy = "文案+配图" in selected_types or "脚本" in selected_types
             has_video = "短视频" in selected_types
 
-            # 文案/脚本生成
-            if has_copy:
+            # 文案/脚本生成 — 只生成用户勾选的内容
+            if "文案+配图" in selected_types or "脚本" in selected_types:
                 result["copy"] = generate_copy(product, current_direction,
                                                 partner_idea, materials_context)
-            if "脚本" in selected_types or has_video:
+            if "脚本" in selected_types or "短视频" in selected_types:
                 result["script"] = generate_video_script(
                     product, current_direction, partner_idea, materials_context)
-            # 短视频单独配文案（短视频配文 = 朋友圈短文 + 口播文案）
-            if has_video and not has_copy:
+            # 短视频配文
+            if "短视频" in selected_types and "文案+配图" not in selected_types:
                 result["video_copy"] = generate_copy(product, current_direction,
                                                        partner_idea, materials_context)
-            elif has_video:
+            elif "短视频" in selected_types:
                 result["video_copy"] = result.get("copy", "")
+            # 配图生成
             if "文案+配图" in selected_types:
                 images, prompts = generate_images(
                     product, partner_idea, result.get("copy", ""), count=1)
                 result["images"] = images
                 result["image_prompts"] = prompts
-            if has_video:
-                result["video_path"] = generate_video(
-                    product, partner_idea, result.get("images", []))
+            # 短视频（跳过，无视频渲染引擎）
+            if "短视频" in selected_types:
+                result["video_path"] = None
 
             st.session_state.generated_content = result
             st.session_state.submitted = False

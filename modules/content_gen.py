@@ -138,10 +138,10 @@ def generate_images(product, partner_idea, copy_text, count=1):
 
     generated = []
     for i, img_prompt in enumerate(image_prompts[:count]):
-        img_path = output_dir / f"gen_{timestamp}_{i}.png"
+        img_dir = output_dir / f"gen_{timestamp}_{i}"
         
         # 调用 Seedream 图片生成能力
-        result = _call_seedream(img_prompt, str(img_path))
+        result = _call_seedream(img_prompt, img_dir)
         
         if result and Path(result).exists():
             generated.append(result)
@@ -207,7 +207,7 @@ def _call_llm(prompt, system_prompt="", temperature=0.7, max_tokens=2000):
     )
 
 
-def _call_seedream(prompt, output_path):
+def _call_seedream(prompt, output_dir):
     """调用 Seedream 图片生成"""
     print(f"[图片生成] 提示词: {prompt[:60]}...")
     seedream_script = os.path.expanduser(
@@ -217,13 +217,18 @@ def _call_seedream(prompt, output_path):
     if Path(seedream_script).exists():
         try:
             result = subprocess.run(
-                ["python3", seedream_script, "--prompt", prompt, "--output", output_path],
-                capture_output=True, text=True, timeout=120
+                ["python3", seedream_script, "--prompt", prompt, "--output", str(output_dir)],
+                capture_output=True, text=True, timeout=180
             )
-            if result.returncode == 0 and Path(output_path).exists():
-                return output_path
-        except:
-            pass
+            if result.returncode == 0:
+                # Seedream 会保存到 output_dir/ 目录下，找最新生成的图片
+                if output_dir.exists():
+                    files = sorted(output_dir.glob("*generated*.jpg")) + sorted(output_dir.glob("*.jpg"))
+                    files = [f for f in files if f.is_file()]
+                    if files:
+                        return str(files[-1])
+        except Exception as e:
+            print(f"[Seedream Error] {e}")
     
     return None
 
