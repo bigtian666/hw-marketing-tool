@@ -687,13 +687,13 @@ def render_management_page(config):
     with tab3:
         st.markdown("### 上传营销物料文件")
         st.caption("从 partner 网站下载后上传，或上传本地文件")
-        up_prod = st.selectbox("归属产品", list(prod_map.keys()), key="up_prod")
-        mat_name = st.text_input("物料名称", placeholder="例如：Pura70产品彩页_v3", key="up_name")
-        mat_tags = st.text_input("标签（逗号分隔）", placeholder="产品, 卖点, 高清图", key="up_tags")
+        up_prod = st.selectbox("归属产品", list(prod_map.keys()), key="tab1_up_prod")
+        mat_name = st.text_input("物料名称", placeholder="例如：Pura70产品彩页_v3", key="tab1_up_name")
+        mat_tags = st.text_input("标签（逗号分隔）", placeholder="产品, 卖点, 高清图", key="tab1_up_tags")
         uploaded_file = st.file_uploader(
             "选择文件（PDF/PPTX/PNG/JPG/MP4 等）",
             type=["pdf", "pptx", "ppt", "docx", "png", "jpg", "jpeg", "mp4"],
-            key="up_file"
+            key="tab1_up_file"
         )
         if uploaded_file and mat_name:
             pid = prod_map[up_prod]
@@ -766,13 +766,13 @@ def render_management_page(config):
     with tab2:
         st.markdown("### 上传营销物料文件")
         st.caption("从 partner 网站下载后上传，或上传本地文件")
-        up_prod = st.selectbox("归属产品", list(prod_map.keys()), key="up_prod")
-        mat_name = st.text_input("物料名称", placeholder="例如：Pura70产品彩页_v3", key="up_name")
-        mat_tags = st.text_input("标签（逗号分隔）", placeholder="产品, 卖点, 高清图", key="up_tags")
+        up_prod = st.selectbox("归属产品", list(prod_map.keys()), key="tab2_up_prod")
+        mat_name = st.text_input("物料名称", placeholder="例如：Pura70产品彩页_v3", key="tab2_up_name")
+        mat_tags = st.text_input("标签（逗号分隔）", placeholder="产品, 卖点, 高清图", key="tab2_up_tags")
         uploaded_file = st.file_uploader(
             "选择文件（PDF/PPTX/PNG/JPG/MP4 等）",
             type=["pdf", "pptx", "ppt", "docx", "png", "jpg", "jpeg", "mp4"],
-            key="up_file"
+            key="tab2_up_file"
         )
         if uploaded_file and mat_name:
             pid = prod_map[up_prod]
