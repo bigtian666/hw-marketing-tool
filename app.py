@@ -13,6 +13,18 @@ from pathlib import Path
 # 添加模块路径
 sys.path.insert(0, str(Path(__file__).parent))
 
+# 初始化 LLM 配置 - DeepSeek 官方 Key
+# 本地部署直接内置，Streamlit Cloud 通过环境变量覆盖
+from modules.llm_api import set_api_key
+DEEPSEEK_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
+if not DEEPSEEK_KEY:
+    # 从配置文件读取本地 Key
+    key_path = Path(__file__).parent / ".api_key"
+    if key_path.exists():
+        DEEPSEEK_KEY = key_path.read_text().strip()
+if DEEPSEEK_KEY:
+    set_api_key(DEEPSEEK_KEY)
+
 from modules.knowledge_base import (
     get_materials, add_material, add_link,
     get_links, delete_link, add_links_batch, unified_search,

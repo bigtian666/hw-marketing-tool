@@ -1,6 +1,6 @@
 """
-DeepSeek V4 / LLM API 调用模块
-支持本地 OpenClaw 环境和 Streamlit Cloud 环境（通过环境变量）
+DeepSeek / LLM API 调用模块
+默认使用 DeepSeek 官方 API，也支持环境变量配置
 """
 
 import json
@@ -9,34 +9,57 @@ import requests
 from pathlib import Path
 
 
+# DeepSeek 官方配置
+DEEPSEEK_API_KEY = ""
+DEEPSEEK_BASE_URL = "https://api.deepseek.com"
+DEEPSEEK_MODEL = "deepseek-chat"
+
+
+def set_api_key(api_key):
+    """设置 DeepSeek API Key（可在运行时切换）"""
+    global DEEPSEEK_API_KEY
+    DEEPSEEK_API_KEY = api_key
+
+
 def _get_api_config():
-    """获取 API 配置：优先 OpenClaw models.json，其次环境变量"""
-    # 方案 1: OpenClaw 本地配置
+    """获取 API 配置：优先环境变量（Streamlit Cloud），其次代码内置"""
+    # 方案 1: 环境变量（适用于 Streamlit Cloud 部署）
+    env_key = os.environ.get("DEEPSEEK_API_KEY", "")
+    if env_key:
+        return {
+            "base_url": os.environ.get("DEEPSEEK_BASE_URL", DEEPSEEK_BASE_URL).rstrip("/"),
+            "api_key": env_key,
+            "model": os.environ.get("DEEPSEEK_MODEL", DEEPSEEK_MODEL),
+            "timeout": int(os.environ.get("LLM_TIMEOUT", "60")),
+        }
+
+    # 方案 2: 代码内置 API Key（本地部署）
+    if DEEPSEEK_API_KEY:
+        return {
+            "base_url": DEEPSEEK_BASE_URL,
+            "api_key": DEEPSEEK_API_KEY,
+            "model": DEEPSEEK_MODEL,
+            "timeout": 60,
+        }
+
+    # 方案 3: 旧的 OpenClaw 配置（兼容）
     models_path = Path.home() / ".openclaw" / "agents" / "main" / "agent" / "models.json"
     if models_path.exists():
         try:
             with open(models_path, "r", encoding="utf-8") as f:
                 cfg = json.load(f)
             provider = cfg.get("providers", {}).get("xiaoyiprovider", {})
-            model_cfg = provider.get("models", [{}])[0] if provider.get("models") else {}
             return {
                 "base_url": provider.get("baseUrl", "").rstrip("/"),
                 "api_key": provider.get("headers", {}).get("x-api-key", ""),
                 "x_uid": provider.get("headers", {}).get("x-uid", ""),
-                "model": model_cfg.get("id", "LLM_DeepSeekV4_Thinking"),
-                "timeout": provider.get("timeoutSeconds", 600),
+                "model": "LLM_DeepSeekV4_Thinking",
+                "timeout": 60,
             }
         except Exception:
             pass
 
-    # 方案 2: 环境变量（适用于 Streamlit Cloud / 其他部署）
-    return {
-        "base_url": os.environ.get("LLM_BASE_URL", "").rstrip("/"),
-        "api_key": os.environ.get("LLM_API_KEY", ""),
-        "x_uid": os.environ.get("LLM_X_UID", ""),
-        "model": os.environ.get("LLM_MODEL", "LLM_DeepSeekV4_Thinking"),
-        "timeout": int(os.environ.get("LLM_TIMEOUT", "60")),
-    }
+    return {"base_url": "", "api_key": "", "model": "", "timeout": 60}
 
 
 def _parse_sse_response(text):
@@ -66,12 +89,13 @@ def call_llm(
     json_mode=False,
 ):
     """
-    调用 LLM 生成内容 (SSE 流式 / 非流式均支持)
+    调用 LLM 生成内容
+    默认使用 DeepSeek 官方 API，支持 SSE 流式 / 非流式
     """
     config = _get_api_config()
 
-    # 降级模式：未配置 LLM 时返回模拟文案，让界面仍然可用
-    if not config["base_url"] or not config["api_key"]:
+    # 未配置 API Key
+    if not config["api_key"]:
         return _mock_llm_response(system_prompt, user_prompt)
 
     messages = []
@@ -79,16 +103,30 @@ def call_llm(
         messages.append({"role": "system", "content": system_prompt})
     messages.append({"role": "user", "content": user_prompt})
 
-    headers = {
-        "Accept": "text/event-stream",
-        "x-request-from": "openclaw",
-        "x-uid": config["x_uid"],
-        "x-api-key": config["api_key"],
-        "Content-Type": "application/json",
-    }
+    # 构建请求头
+    is_deepseek = "api.deepseek.com" in config.get("base_url", "")
+    if is_deepseek or config["base_url"] == DEEPSEEK_BASE_URL:
+        # DeepSeek 官方 API 标准格式
+        headers = {
+            "Authorization": f"Bearer {config['api_key']}",
+            "Content-Type": "application/json",
+        }
+        base_url = DEEPSEEK_BASE_URL
+        model = config.get("model", DEEPSEEK_MODEL)
+    else:
+        # 兼容模式（xiaoyiprovider 等）
+        headers = {
+            "Accept": "text/event-stream",
+            "x-request-from": "openclaw",
+            "x-uid": config.get("x_uid", ""),
+            "x-api-key": config["api_key"],
+            "Content-Type": "application/json",
+        }
+        base_url = config["base_url"]
+        model = config.get("model", "LLM_DeepSeekV4_Thinking")
 
     body = {
-        "model": config["model"],
+        "model": model,
         "messages": messages,
         "temperature": temperature,
         "max_tokens": max_tokens,
@@ -100,10 +138,10 @@ def call_llm(
 
     try:
         resp = requests.post(
-            f"{config['base_url']}/chat/completions",
+            f"{base_url}/chat/completions",
             headers=headers,
             json=body,
-            timeout=config["timeout"],
+            timeout=config.get("timeout", 60),
             stream=True,
         )
         resp.raise_for_status()
@@ -115,8 +153,7 @@ def call_llm(
 
 def _mock_llm_response(system_prompt, user_prompt):
     """
-    降级模式：当 LLM 不可用时返回模拟文案
-    让用户可以先体验界面交互流程
+    降级模式：当 LLM 不可用时返回提示文案
     """
     return (
         "【演示模式 - 未配置 LLM API】\n\n"
@@ -126,6 +163,5 @@ def _mock_llm_response(system_prompt, user_prompt):
         "高清画质、智能告警、AI 人形检测——\n"
         "看得清，辨得准，反应快。\n\n"
         "智慧安防，一「眸」了然。\n\n"
-        "💡 提示：请在 Streamlit Cloud Secrets 中配置以下环境变量即可启用真实 AI：\n"
-        "LLM_BASE_URL / LLM_API_KEY / LLM_X_UID"
+        "💡 提示：请在页面后台设置 DeepSeek API Key 以启用真实 AI"
     )
