@@ -292,8 +292,7 @@ def render_partner_page(product, config):
             st.markdown("### 🎬 短视频")
             vp = result["video_path"]
             if Path(vp).exists():
-                with open(vp, "rb") as f:
-                    st.download_button("📥 下载视频", f, file_name="marketing_video.mp4")
+                st.success(f"✅ 视频已生成 [待审核通过后可下载]")
             else:
                 st.info("🎬 视频生成中，正式部署后将直接输出可下载的 mp4")
 
