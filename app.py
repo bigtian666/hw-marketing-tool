@@ -526,70 +526,121 @@ def _submit_content(product, direction, idea, result):
 
 
 
+
 def render_management_page(config):
-    """知识库管理 — 精简版：每个产品独立子库，上传链接+文件合一，品牌规则可编辑"""
+    """知识库管理 — 品牌规则全局，物料按产品管理，必选物料直设"""
     st.title("⚙️ 知识库管理")
-    st.caption("每个产品拥有独立的知识子库，管理品牌规则和必选物料")
 
-    prod_map = {p["name"]: p for p in config.get("products", [])}
-    sel_name = st.selectbox("选择要管理的产品", list(prod_map.keys()), key="mgmt_prod")
-    product = prod_map[sel_name]
-    pid = product["id"]
+    # ═══ Tab 1: 物料管理（按产品筛选） ═══
+    # ═══ Tab 2: 品牌规则（全局，不绑定产品） ═══
+    tab1, tab2 = st.tabs(["📦 物料管理", "⚙️ 品牌规则（全局）"])
 
-    # 两个主标签页
-    tab1, tab2 = st.tabs(["📦 物料管理", "⚙️ 品牌规则"])
-
-    # ═══ Tab 1: 物料管理（上传链接 + 上传文件 合一） ═══
+    # ══════════════════════════════════════════════════════════
+    # Tab 1: 物料管理 — 按产品筛选
+    # ══════════════════════════════════════════════════════════
     with tab1:
-        st.markdown(f"### {product['name']} — 知识库物料")
-        st.caption("新增物料时自动归属于当前产品")
+        prod_map = {p["name"]: p for p in config.get("products", [])}
+        sel_name = st.selectbox("选择要管理的产品", list(prod_map.keys()), key="mgmt_prod")
+        product = prod_map[sel_name]
+        pid = product["id"]
 
-        # 必选物料提示
+        st.markdown(f"### {product['name']} — 知识库物料")
+        st.caption("新增物料自动归属当前产品")
+
+        # ── 必选物料（产品图片 + 产品模型） ──
+        st.markdown("#### ⭐ 必选物料")
+        st.caption("每个产品必须提供以下物料，AI 生成内容时会优先使用")
+
+        # 查找已上传的必选物料
+        all_mats = get_materials(pid)
+        all_links = get_links(pid)
+
+        def has_required(tag_keyword):
+            for m in all_mats.values():
+                if tag_keyword in " ".join(m.get("tags", [])):
+                    return m.get("name", "")
+            for l in all_links.values():
+                if tag_keyword in " ".join(l.get("tags", [])):
+                    return l.get("title", "")
+            return None
+
+        req_img = has_required("产品图片")
+        req_model = has_required("产品模型")
+
+        req_c1, req_c2 = st.columns(2)
+
+        with req_c1:
+            st.markdown("**🖼️ 产品图片（必选）**")
+            if req_img:
+                st.success(f"✅ 已上传：{req_img}")
+                if st.button("🗑️ 清除", key="clear_req_img", use_container_width=True):
+                    _remove_by_tag(pid, "产品图片")
+                    st.rerun()
+            else:
+                st.warning("⚠️ 尚未上传")
+                # 快捷上传
+                ri = st.file_uploader("上传产品图片", type=["png", "jpg", "jpeg"],
+                                       key="req_img_upload", label_visibility="collapsed")
+                if ri is not None:
+                    save_dir = Path(__file__).parent / "data" / "materials" / pid
+                    save_dir.mkdir(parents=True, exist_ok=True)
+                    fp = save_dir / ri.name
+                    with open(fp, "wb") as f:
+                        f.write(ri.getbuffer())
+                    add_material(str(fp), pid, ri.name, ["产品图片", "必选"])
+                    st.success("✅ 必选产品图片已上传！")
+                    st.rerun()
+
+        with req_c2:
+            st.markdown("**🏗️ 产品模型（必选）**")
+            if req_model:
+                st.success(f"✅ 已上传：{req_model}")
+                if st.button("🗑️ 清除", key="clear_req_model", use_container_width=True):
+                    _remove_by_tag(pid, "产品模型")
+                    st.rerun()
+            else:
+                st.warning("⚠️ 尚未上传")
+                rm = st.file_uploader("上传产品模型", type=["png", "jpg", "jpeg", "pdf", "pptx", "obj", "stl", "glb"],
+                                       key="req_model_upload", label_visibility="collapsed")
+                if rm is not None:
+                    save_dir = Path(__file__).parent / "data" / "materials" / pid
+                    save_dir.mkdir(parents=True, exist_ok=True)
+                    fp = save_dir / rm.name
+                    with open(fp, "wb") as f:
+                        f.write(rm.getbuffer())
+                    add_material(str(fp), pid, rm.name, ["产品模型", "必选"])
+                    st.success("✅ 必选产品模型已上传！")
+                    st.rerun()
+
+        st.divider()
+
+        # ── 常规物料（链接 + 文件 合一） ──
+        st.markdown("#### ➕ 新增常规物料")
+
         ticons = {"文档": "📄", "PPT": "📊", "图片": "🖼️", "视频": "🎬", "表格": "📋", "其他": "📁"}
         sicons = {"待抓取": "⏳", "已抓取": "📋", "已下载": "✅", "失效": "❌"}
 
-        # 现有的物料概览
-        links = get_links(pid)
-        materials = get_materials(pid)
-
-        col_sum1, col_sum2, col_sum3 = st.columns(3)
-        with col_sum1:
-            st.metric("📎 物料链接", len(links))
-        with col_sum2:
-            st.metric("📁 本地文件", len(materials))
-        with col_sum3:
-            st.metric("📌 必选物料", sum(1 for m in materials.values() if "必选" in m.get("tags", [])))
-
-        st.divider()
-        st.markdown("#### ➕ 新增物料")
-
-        # 合一表单：链接 或 文件
-        input_mode = st.radio("输入方式", ["🔗 链接", "📁 文件上传"], horizontal=True, key="input_mode")
+        input_mode = st.radio("输入方式", ["🔗 链接", "📁 文件上传"], horizontal=True, key="mm_input_mode")
 
         if input_mode == "🔗 链接":
-            url = st.text_input("物料链接", placeholder="https://partner.huawei.com/eplus/marketing/...", key="new_link_url")
-            link_title = st.text_input("物料标题（可选）", placeholder="留空自动从URL提取", key="new_link_title")
-            link_tags = st.text_input("标签（逗号分隔）", placeholder="产品, 卖点, 资料", key="new_link_tags")
-            must_have = st.checkbox("标记为必选物料", key="link_must")
-            if st.button("✅ 添加链接", type="primary", use_container_width=True, key="add_link_btn"):
+            url = st.text_input("物料链接", placeholder="https://partner.huawei.com/...", key="mm_link_url")
+            link_title = st.text_input("物料标题（可选）", placeholder="留空自动提取", key="mm_link_title")
+            link_tags = st.text_input("标签（逗号分隔）", placeholder="产品, 卖点, 资料", key="mm_link_tags")
+            if st.button("✅ 添加链接", type="primary", use_container_width=True, key="mm_add_link"):
                 if url.strip():
                     tags = [t.strip() for t in link_tags.split(",") if t.strip()]
-                    if must_have:
-                        tags.append("必选")
                     add_link(url.strip(), pid, title=link_title.strip(), tags=tags)
-                    st.success("✅ 链接已添加，系统将在后台自动处理")
+                    st.success("✅ 链接已添加")
                     st.rerun()
                 else:
                     st.warning("请输入链接地址")
-
         else:
-            up_name = st.text_input("物料名称", placeholder="例如：DF10产品彩页_v3", key="up_file_name")
-            up_tags = st.text_input("标签（逗号分隔）", placeholder="产品, 卖点, 高清图", key="up_file_tags")
-            must_have_file = st.checkbox("标记为必选物料", key="file_must")
+            up_name = st.text_input("物料名称", placeholder="例如：DF10产品彩页_v3", key="mm_file_name")
+            up_tags = st.text_input("标签（逗号分隔）", placeholder="产品, 卖点, 高清图", key="mm_file_tags")
             uploaded_file = st.file_uploader(
                 "选择文件（PDF/PPTX/PNG/JPG/MP4 等）",
                 type=["pdf", "pptx", "ppt", "docx", "png", "jpg", "jpeg", "mp4"],
-                key="mgmt_upload"
+                key="mm_file_upload"
             )
             if uploaded_file and up_name.strip():
                 save_dir = Path(__file__).parent / "data" / "materials" / pid
@@ -598,108 +649,101 @@ def render_management_page(config):
                 with open(fp, "wb") as f:
                     f.write(uploaded_file.getbuffer())
                 tags = [t.strip() for t in up_tags.split(",") if t.strip()]
-                if must_have_file:
-                    tags.append("必选")
                 add_material(str(fp), pid, up_name.strip(), tags)
                 st.success(f"✅ 物料「{up_name.strip()}」上传成功！")
-                st.balloons()
                 st.rerun()
 
         st.divider()
-        st.markdown("#### 📋 当前物料列表")
+        st.markdown("#### 📋 当前物料清单")
 
-        # 合并显示链接和文件
         all_items = []
-
-        # 排序：必选 > 其他
-        def sort_key(item):
-            tags = item.get("tags", [])
-            return (0 if "必选" in tags else 1, item.get("name", item.get("title", "")))
-
-        for m in materials.values():
+        # 文件
+        for m in all_mats.values():
             icon = ticons.get(m.get("type", ""), "📁")
             tag_str = " · ".join(m.get("tags", []))
-            must_badge = "⭐ " if "必选" in m.get("tags", []) else ""
+            is_req = "必选" in m.get("tags", [])
             all_items.append({
                 "icon": icon,
                 "name": m.get("name", "未命名"),
-                "detail": f"类型：{m.get('type', '')} | 大小：{m.get('size', 0)/1024:.0f}KB" + (f" | 标签：{tag_str}" if tag_str else ""),
-                "must": "必选" in m.get("tags", []),
-                "type": "file",
+                "detail": f"类型：{m.get('type', '')} | 大小：{m.get('size', 0)/1024:.0f}KB" + (f" | {tag_str}" if tag_str else ""),
+                "must": is_req,
+                "sort": 0 if is_req else 1,
             })
-
-        for l in links.values():
+        # 链接
+        for l in all_links.values():
             icon = sicons.get(l.get("status", ""), "🔗")
             tag_str = " · ".join(l.get("tags", []))
-            must_badge = "⭐ " if "必选" in l.get("tags", []) else ""
+            is_req = "必选" in l.get("tags", [])
             all_items.append({
                 "icon": icon,
                 "name": l.get("title", "未命名"),
-                "detail": f"状态：{l.get('status', '')}" + (f" | 标签：{tag_str}" if tag_str else ""),
-                "must": "必选" in l.get("tags", []),
-                "type": "link",
+                "detail": f"状态：{l.get('status', '')}" + (f" | {tag_str}" if tag_str else ""),
+                "must": is_req,
+                "sort": 0 if is_req else 1,
                 "link_id": l.get("id"),
             })
 
-        all_items.sort(key=lambda x: (0 if x["must"] else 1, x["name"]))
+        all_items.sort(key=lambda x: (x["sort"], x["name"]))
 
         if all_items:
             for item in all_items:
                 must_tag = "⭐ **必选** " if item["must"] else ""
                 with st.container(border=True):
-                    cols = st.columns([0.05, 0.65, 0.2, 0.1])
+                    cols = st.columns([0.05, 0.6, 0.25, 0.1])
                     with cols[0]:
                         st.markdown(item["icon"])
                     with cols[1]:
                         st.markdown(f"{must_tag}**{item['name']}**")
                         st.caption(item["detail"])
                     with cols[2]:
+                        pass
+                    with cols[3]:
                         if item.get("link_id"):
-                            if st.button("🗑️ 删除", key=f"del_link_{item['link_id']}", use_container_width=True):
+                            if st.button("🗑️", key=f"d_mm_{item['link_id']}", use_container_width=True):
                                 delete_link(item["link_id"])
                                 st.rerun()
         else:
-            st.info("暂无物料，请通过上方表单添加链接或上传文件")
+            st.info("暂无物料，请通过上方表单添加")
 
-    # ═══ Tab 2: 品牌规则 ═══
+        # 物料统计
+        st.divider()
+        st.caption(f"📊 合计：{len(all_links)} 个链接 · {len(all_mats)} 个文件 · "
+                   f"必选物料 {(1 if req_img else 0) + (1 if req_model else 0)}/2")
+
+    # ══════════════════════════════════════════════════════════
+    # Tab 2: 品牌规则 — 全局，不绑定产品
+    # ══════════════════════════════════════════════════════════
     with tab2:
-        st.markdown("### 品牌内容规则")
-        st.caption("手动添加一条一条的语言规则，AI 生成内容时会自动遵守")
+        st.markdown("### 品牌内容规则（全局生效）")
+        st.caption("这里设置的规则对所有产品和方案统一生效，不区分产品")
 
-        # 显示已有规则
         forbidden = config.get("rules", {}).get("forbidden_words", [])
         required = config.get("rules", {}).get("required_words", [])
         brand_phrases = config.get("rules", {}).get("brand_phrases", [])
 
-        # 规则列表
-        rule_col1, rule_col2 = st.columns(2)
-        with rule_col1:
+        col1, col2 = st.columns(2)
+        with col1:
             st.markdown("**❌ 禁止使用词**")
-            if forbidden:
-                for w in forbidden:
-                    st.markdown(f"- ~~{w}~~ (禁用)")
-            else:
+            for w in forbidden:
+                st.markdown(f"- ~~{w}~~ (禁用)")
+            if not forbidden:
                 st.caption("暂无")
 
-        with rule_col2:
+        with col2:
             st.markdown("**✅ 必须包含词**")
-            if required:
-                for w in required:
-                    st.markdown(f"- **{w}** (必含)")
-            else:
+            for w in required:
+                st.markdown(f"- **{w}** (必含)")
+            if not required:
                 st.caption("暂无")
 
         st.divider()
-
-        # 手动添加规则
         st.markdown("#### ➕ 添加新规则")
-        rule_type = st.selectbox("规则类型", ["禁止词（禁用）", "必含词（必须出现）", "品牌话术"], key="rule_type")
-        rule_text = st.text_input("规则内容", placeholder="例如：最、第一、行业领先…", key="rule_text")
+        rule_type = st.selectbox("规则类型", ["禁止词（禁用）", "必含词（必须出现）", "品牌话术"], key="gbl_rule_type")
+        rule_text = st.text_input("规则内容", placeholder="例如：最、第一、行业领先…", key="gbl_rule_text")
 
-        if st.button("✅ 添加规则", type="primary", use_container_width=True, key="add_rule"):
+        if st.button("✅ 添加规则", type="primary", use_container_width=True, key="gbl_add_rule"):
             if rule_text.strip():
                 new_word = rule_text.strip()
-                from modules.knowledge_base import load_config
                 import yaml
                 cfg_path = Path(__file__).parent / "config.yaml"
                 with open(cfg_path, "r", encoding="utf-8") as f:
@@ -708,25 +752,21 @@ def render_management_page(config):
                 if "禁止" in rule_type:
                     if new_word not in cfg["rules"]["forbidden_words"]:
                         cfg["rules"]["forbidden_words"].append(new_word)
-                        st.success(f"✅ 已添加禁止词「{new_word}」")
                 elif "必含" in rule_type:
                     if new_word not in cfg["rules"]["required_words"]:
                         cfg["rules"]["required_words"].append(new_word)
-                        st.success(f"✅ 已添加必含词「{new_word}」")
                 else:
                     if new_word not in cfg["rules"]["brand_phrases"]:
                         cfg["rules"]["brand_phrases"].append(new_word)
-                        st.success(f"✅ 已添加品牌话术「{new_word}」")
 
                 with open(cfg_path, "w", encoding="utf-8") as f:
                     yaml.dump(cfg, f, allow_unicode=True, indent=2, sort_keys=False)
+                st.success(f"✅ 已添加「{new_word}」")
                 st.rerun()
             else:
                 st.warning("请输入规则内容")
 
         st.divider()
-
-        # 品牌信息概览
         brand = config.get("brand", {})
         st.markdown("#### ℹ️ 品牌信息")
         st.markdown(f"- **品牌名：** {brand.get('name', '')}")
@@ -735,6 +775,31 @@ def render_management_page(config):
         if tone_str:
             st.markdown(f"- **语气风格：** {tone_str}")
         st.caption("修改品牌信息需编辑 config.yaml 文件")
+
+
+def _remove_by_tag(product_id, tag_keyword):
+    """按标签删除物料和链接"""
+    # 删除物料文件
+    mats = get_materials(product_id)
+    for mid, m in mats.items():
+        if tag_keyword in " ".join(m.get("tags", [])):
+            fp = m.get("file_path", "")
+            if fp and Path(fp).exists():
+                Path(fp).unlink(missing_ok=True)
+    # 从索引中移除（重新写入，跳过匹配项）
+    from modules.knowledge_base import INDEX_FILE
+    if INDEX_FILE.exists():
+        with open(INDEX_FILE, "r", encoding="utf-8") as f:
+            idx = json.load(f)
+        idx = {k: v for k, v in idx.items()
+               if not (v.get("product_id") == product_id and tag_keyword in " ".join(v.get("tags", [])))}
+        with open(INDEX_FILE, "w", encoding="utf-8") as f:
+            json.dump(idx, f, ensure_ascii=False, indent=2)
+    # 删除链接
+    links = get_links(product_id)
+    for lid, l in links.items():
+        if tag_keyword in " ".join(l.get("tags", [])):
+            delete_link(lid)
 
 # ═══════════════════════════════════════════════════════════════
 # 侧边栏 + 页面路由
